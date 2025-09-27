@@ -451,12 +451,6 @@ class DICOMPixelIntensityRangeCheck:
                 severity=Severity.ERROR,
             )
         try:
-            import numpy as np
-        except Exception:
-            return ValidationResult(
-                self.name, False, message="numpy not installed", severity=Severity.ERROR
-            )
-        try:
             arr = ds.pixel_array  # type: ignore[attr-defined]
         except Exception as exc:
             return ValidationResult(

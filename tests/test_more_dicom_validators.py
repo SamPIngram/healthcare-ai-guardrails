@@ -1,5 +1,3 @@
-import pytest
-
 from healthcare_ai_guardrails.testing.dicom_factory import create_test_dicom
 from healthcare_ai_guardrails.validators.dicom import (
     DICOMSOPClassCheck,
