@@ -23,7 +23,15 @@ dependencies = [
     "PyYAML>=6.0",
     "jsonschema>=4.20",
     "numpy>=1.22",
+]
+
+[project.optional-dependencies]
+test = [
     "pytest>=8.4.2",
+]
+lint = [
+    "ruff",
+    "black",
 ]
 
 [project.urls]
