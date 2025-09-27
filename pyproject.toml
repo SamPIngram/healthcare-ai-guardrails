@@ -9,7 +9,7 @@ description = "Guardrails for AI input/output validation in healthcare, with DIC
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
-authors = [{ name = "Sam Ingram", email = "sp_ingram12@yahoo.co.uk" }]
+authors = [{ name = "Sam Ingram", email = "sampingram12@gmail.com" }]
 keywords = ["AI", "ML", "Healthcare", "DICOM", "Validation", "Guardrails"]
 classifiers = [
     "Programming Language :: Python :: 3",
