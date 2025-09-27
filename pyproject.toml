@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "healthcare-ai-guardrails"
+version = "0.1.0"
+description = "Guardrails for AI input/output validation in healthcare, with DICOM support"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Sam Ingram", email = "sp_ingram12@yahoo.co.uk" }]
+keywords = ["AI", "ML", "Healthcare", "DICOM", "Validation", "Guardrails"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Healthcare Industry",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "pydicom>=2.3",
+    "PyYAML>=6.0",
+    "jsonschema>=4.20",
+    "numpy>=1.22",
+    "pytest>=8.4.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/SamPIngram/healthcare-ai-guardrails"
+Issues = "https://github.com/SamPIngram/healthcare-ai-guardrails/issues"
+
+[project.scripts]
+hc-guardrails = "healthcare_ai_guardrails.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["healthcare_ai_guardrails*"]
+exclude = []
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q"
+testpaths = ["tests"]

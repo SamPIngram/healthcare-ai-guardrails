@@ -1,0 +1,62 @@
+input:
+  - type: dicom_patient_age
+    name: age_in_training_bounds
+    min_years: 18
+    max_years: 90
+    severity: warning
+    description: Ensure adult cohort within training distribution
+  - type: dicom_modality
+    name: allowed_modality
+    allowed: ["CT", "MR"]
+    severity: error
+  - type: dicom_patient_sex
+    name: allowed_patient_sex
+    allowed: ["M", "F", "O"]
+    severity: warning
+  - type: dicom_slice_thickness
+    name: slice_thickness_mm_range
+    min_mm: 0.5
+    max_mm: 5
+    inclusive: true
+  - type: dicom_pixel_spacing
+    name: pixel_spacing_mm_range
+    min_mm: 0.2
+    max_mm: 2.0
+  - type: dicom_image_orientation
+    name: orientation_cosines_sane
+    tolerance: 0.01
+  - type: dicom_sop_class
+    name: allowed_sop_class
+    # CT Image Storage UID as example
+    allowed: ["1.2.840.10008.5.1.4.1.1.2"]
+  - type: dicom_body_part_examined
+    name: allowed_body_parts
+    allowed: ["HEAD", "CHEST"]
+  - type: dicom_photometric_interpretation
+    name: allowed_photometric
+    allowed: ["MONOCHROME2", "RGB"]
+  - type: dicom_pixel_intensity_range
+    name: pixel_intensity_range
+    min: 0
+    max: 4095
+
+output:
+  - type: range
+    name: probability_in_0_1
+    path: ["probability"]
+    min: 0
+    max: 1
+    inclusive: true
+    severity: error
+  - type: json_schema
+    name: output_schema
+    schema:
+      type: object
+      required: ["probability", "label"]
+      properties:
+        probability:
+          type: number
+          minimum: 0
+          maximum: 1
+        label:
+          type: string
