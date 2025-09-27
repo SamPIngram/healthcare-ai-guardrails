@@ -1,5 +1,10 @@
 # Healthcare AI Guardrails
 
+![PyPI](https://img.shields.io/pypi/v/healthcare-ai-guardrails.svg?logo=pypi&label=PyPI)
+![Python Versions](https://img.shields.io/pypi/pyversions/healthcare-ai-guardrails.svg)
+![CI](https://github.com/SamPIngram/healthcare-ai-guardrails/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+
 Lightweight validation guardrails for AI model inputs/outputs in healthcare workflows, with first-class DICOM support.
 
 ## Features
@@ -10,9 +15,27 @@ Lightweight validation guardrails for AI model inputs/outputs in healthcare work
 - Output structure validation via JSON Schema
 - Simple Python API and CLI (`hc-guardrails`)
 
-## Install
+## Install (users)
 
-Dev install (recommended):
+Install from PyPI:
+
+```bash
+pip install healthcare-ai-guardrails
+```
+
+This installs the Python API and a CLI named `hc-guardrails`.
+
+Quick CLI check:
+
+```bash
+hc-guardrails examples/spec.example.yaml examples/output.sample.json --mode output
+```
+
+If you’re validating DICOM, `pydicom` and `numpy` are already included as dependencies.
+
+## Install (contributors)
+
+Dev install:
 
 ```bash
 python -m venv .venv
@@ -116,6 +139,8 @@ output:
 
 ## Development
 
+Supported Python: 3.9–3.13 (tested in CI on Linux; library is pure Python and should work across platforms).
+
 Run tests locally:
 
 ```bash
@@ -161,6 +186,16 @@ uv run black .
 PRs welcome. Please add/update tests for new validators or behavior and update `examples/spec.example.yaml` when adding new spec types.
 
 To create DICOMs in tests, use `create_test_dicom` from `healthcare_ai_guardrails.testing.dicom_factory`.
+
+## Releases and changelog
+
+- PyPI: https://pypi.org/project/healthcare-ai-guardrails/
+- Changelog: see [CHANGELOG.md](./CHANGELOG.md)
+
+Maintainers (publishing):
+
+- Create a GitHub Release on the `main` branch. The workflow runs tests across Python 3.9–3.13, builds the sdist and universal wheel, and publishes to PyPI.
+- Ensure the repository has `PYPI_API_TOKEN` set in Secrets.
 
 ## License
 
