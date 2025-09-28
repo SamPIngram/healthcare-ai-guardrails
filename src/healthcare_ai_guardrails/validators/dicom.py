@@ -492,3 +492,235 @@ class DICOMPixelIntensityRangeCheck:
             severity=self.severity,
             context={"min": vmin, "max": vmax},
         )
+
+
+def _validate_numeric_range(
+    ds: Any,
+    check_name: str,
+    tag: str,
+    unit: str,
+    min_val: float | None,
+    max_val: float | None,
+    inclusive: bool,
+    severity: Severity,
+) -> ValidationResult:
+    if pydicom is None:
+        return ValidationResult(
+            check_name,
+            False,
+            message="pydicom not installed",
+            severity=Severity.ERROR,
+        )
+    val = _get(ds, tag)
+    if val is None:
+        return ValidationResult(
+            check_name, False, message=f"{tag} missing", severity=severity
+        )
+    try:
+        v = float(val)
+    except (ValueError, TypeError):
+        return ValidationResult(
+            check_name,
+            False,
+            message=f"{tag} not numeric: {val}",
+            severity=severity,
+        )
+
+    passed = True
+    msgs = []
+    if min_val is not None:
+        if inclusive and v < min_val:
+            passed = False
+            msgs.append(f"{v} < min {min_val} {unit}")
+        if not inclusive and v <= min_val:
+            passed = False
+            msgs.append(f"{v} <= min {min_val} {unit}")
+    if max_val is not None:
+        if inclusive and v > max_val:
+            passed = False
+            msgs.append(f"{v} > max {max_val} {unit}")
+        if not inclusive and v >= max_val:
+            passed = False
+            msgs.append(f"{v} >= max {max_val} {unit}")
+
+    return ValidationResult(
+        check_name,
+        passed,
+        message="; ".join(msgs),
+        severity=severity,
+        context={f"{tag.lower()}_{unit}": v},
+    )
+
+
+@dataclass
+class DICOMKVPCheck:
+    name: str = "dicom_kvp_range"
+    min_kvp: float | None = None
+    max_kvp: float | None = None
+    inclusive: bool = True
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure DICOM KVP is within expected range"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        return _validate_numeric_range(
+            ds=ds,
+            check_name=self.name,
+            tag="KVP",
+            unit="kVp",
+            min_val=self.min_kvp,
+            max_val=self.max_kvp,
+            inclusive=self.inclusive,
+            severity=self.severity,
+        )
+
+
+@dataclass
+class DICOMTubeCurrentCheck:
+    name: str = "dicom_tube_current_range"
+    min_ma: float | None = None
+    max_ma: float | None = None
+    inclusive: bool = True
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure DICOM XRayTubeCurrent is within expected range (mA)"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        return _validate_numeric_range(
+            ds=ds,
+            check_name=self.name,
+            tag="XRayTubeCurrent",
+            unit="mA",
+            min_val=self.min_ma,
+            max_val=self.max_ma,
+            inclusive=self.inclusive,
+            severity=self.severity,
+        )
+
+
+@dataclass
+class DICOMExposureTimeCheck:
+    name: str = "dicom_exposure_time_range"
+    min_ms: float | None = None
+    max_ms: float | None = None
+    inclusive: bool = True
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure DICOM ExposureTime is within expected range (ms)"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        return _validate_numeric_range(
+            ds=ds,
+            check_name=self.name,
+            tag="ExposureTime",
+            unit="ms",
+            min_val=self.min_ms,
+            max_val=self.max_ms,
+            inclusive=self.inclusive,
+            severity=self.severity,
+        )
+
+
+@dataclass
+class DICOMProtocolNameCheck:
+    name: str = "dicom_protocol_name_allowed"
+    allowed: list[str] | None = None
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure ProtocolName is allowed"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        if pydicom is None:
+            return ValidationResult(
+                self.name,
+                False,
+                message="pydicom not installed",
+                severity=Severity.ERROR,
+            )
+        val = _get(ds, "ProtocolName")
+        if val is None:
+            return ValidationResult(
+                self.name,
+                False,
+                message="ProtocolName missing",
+                severity=self.severity,
+            )
+        allowed = self.allowed or []
+        passed = (str(val) in allowed) if allowed else True
+        msg = "" if passed else f"ProtocolName {val!r} not in {allowed}"
+        return ValidationResult(self.name, passed, message=msg, severity=self.severity)
+
+
+@dataclass
+class DICOMRTStructureCheck:
+    name: str = "dicom_rt_structure_present"
+    required_rois: list[str] | None = None
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure required ROIs are present in the RT Structure Set"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        if pydicom is None:
+            return ValidationResult(
+                self.name,
+                False,
+                message="pydicom not installed",
+                severity=Severity.ERROR,
+            )
+
+        # Check if it's an RT Structure Set
+        sop_class_uid = _get(ds, "SOPClassUID")
+        if sop_class_uid != "1.2.840.10008.5.1.4.1.1.481.3":
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Not an RT Structure Set (SOPClassUID is {sop_class_uid})",
+                severity=self.severity,
+            )
+
+        modality = _get(ds, "Modality")
+        if modality != "RTSTRUCT":
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Modality is not RTSTRUCT, but {modality}",
+                severity=self.severity,
+            )
+
+        if not self.required_rois:
+            return ValidationResult(
+                self.name,
+                True,
+                message="No required ROIs specified.",
+                severity=self.severity,
+            )
+
+        roi_sequence = _get(ds, "StructureSetROISequence")
+        if not roi_sequence:
+            return ValidationResult(
+                self.name,
+                False,
+                message="StructureSetROISequence not found.",
+                severity=self.severity,
+            )
+
+        present_rois = {
+            item.ROIName for item in roi_sequence if hasattr(item, "ROIName")
+        }
+        missing_rois = [
+            roi for roi in self.required_rois if roi not in present_rois
+        ]
+
+        if not missing_rois:
+            return ValidationResult(
+                self.name,
+                True,
+                severity=self.severity,
+                context={"present_rois": list(present_rois)},
+            )
+        else:
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Missing ROIs: {', '.join(missing_rois)}",
+                severity=self.severity,
+                context={
+                    "present_rois": list(present_rois),
+                    "missing_rois": missing_rois,
+                },
+            )
