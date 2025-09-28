@@ -7,20 +7,12 @@ from healthcare_ai_guardrails.validators.dicom import (
     DICOMTubeCurrentCheck,
     DICOMExposureTimeCheck,
     DICOMProtocolNameCheck,
-    DICOMValueInListCheck,
-    DICOMTagTypeCheck,
 )
 
 
 class FakeDS(dict):
     def __getattr__(self, item):
         return self.get(item)
-
-
-class FakeElement:
-    def __init__(self, value, vr):
-        self.value = value
-        self.VR = vr
 
 
 def test_patient_sex_check():
@@ -84,20 +76,4 @@ def test_protocol_name_check():
     v = DICOMProtocolNameCheck(allowed=["Axial Brain", "Sagittal Spine"])
     assert v.validate(ds).passed is True
     ds2 = FakeDS(ProtocolName="Coronal Chest")
-    assert v.validate(ds2).passed is False
-
-
-def test_value_in_list_check():
-    ds = FakeDS(Manufacturer="SIEMENS")
-    v = DICOMValueInListCheck(tag="Manufacturer", allowed_values=["SIEMENS", "GE"])
-    assert v.validate(ds).passed is True
-    ds2 = FakeDS(Manufacturer="PHILIPS")
-    assert v.validate(ds2).passed is False
-
-
-def test_tag_type_check():
-    ds = FakeDS(PatientName=FakeElement("John Doe", "PN"))
-    v = DICOMTagTypeCheck(tag="PatientName", expected_vr="PN")
-    assert v.validate(ds).passed is True
-    ds2 = FakeDS(PatientName=FakeElement("John Doe", "LO"))
     assert v.validate(ds2).passed is False
