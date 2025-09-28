@@ -121,6 +121,23 @@ class DICOMModalityCheck:
 
 
 @dataclass
+class DICOMPatientPositionCheck:
+    name: str = "dicom_patient_position_allowed"
+    allowed: list[str] | None = None
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure PatientPosition is one of the allowed values"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        checker = DICOMGenericValueInListCheck(
+            name=self.name,
+            tag="PatientPosition",
+            allowed_values=self.allowed or ["HFS", "FFP", "FFS"],
+            severity=self.severity,
+        )
+        return checker.validate(ds)
+
+
+@dataclass
 class DICOMPatientSexCheck:
     name: str = "dicom_patient_sex_allowed"
     allowed: list[str] | None = None  # e.g., ["M", "F", "O"]

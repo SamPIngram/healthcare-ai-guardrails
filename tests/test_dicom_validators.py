@@ -7,6 +7,7 @@ from healthcare_ai_guardrails.validators.dicom import (
     DICOMTubeCurrentCheck,
     DICOMExposureTimeCheck,
     DICOMProtocolNameCheck,
+    DICOMPatientPositionCheck,
 )
 
 
@@ -76,4 +77,12 @@ def test_protocol_name_check():
     v = DICOMProtocolNameCheck(allowed=["Axial Brain", "Sagittal Spine"])
     assert v.validate(ds).passed is True
     ds2 = FakeDS(ProtocolName="Coronal Chest")
+    assert v.validate(ds2).passed is False
+
+
+def test_patient_position_check():
+    ds = FakeDS(PatientPosition="HFS")
+    v = DICOMPatientPositionCheck()
+    assert v.validate(ds).passed is True
+    ds2 = FakeDS(PatientPosition="HFP")
     assert v.validate(ds2).passed is False

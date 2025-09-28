@@ -11,7 +11,7 @@ Lightweight validation guardrails for AI model inputs/outputs in healthcare work
 
 - Declarative YAML spec for checks on input and output data
 - Built-in validators: numeric ranges, choices, required fields
-- **Specific DICOM validators:** patient age, modality, patient sex, slice thickness, pixel spacing, image orientation, SOP Class UID, BodyPartExamined, PhotometricInterpretation, pixel intensity range, KVP, X-Ray Tube Current, Exposure Time, Protocol Name, and RT Structure Set ROI presence.
+- **Specific DICOM validators:** patient age, modality, patient sex, patient position, slice thickness, pixel spacing, image orientation, SOP Class UID, BodyPartExamined, PhotometricInterpretation, pixel intensity range, KVP, X-Ray Tube Current, Exposure Time, Protocol Name, and RT Structure Set ROI presence.
 - **Generic DICOM validators:** check if a tag's value is in a list, check a tag's value representation (VR), and check if a tag's numeric value is within a range.
 - Output structure validation via JSON Schema
 - Simple Python API and CLI (`hc-guardrails`)
@@ -81,6 +81,7 @@ from healthcare_ai_guardrails.validators.dicom import (
     DICOMPatientAgeCheck,
     DICOMModalityCheck,
     DICOMPatientSexCheck,
+    DICOMPatientPositionCheck,
     DICOMSliceThicknessCheck,
     DICOMPixelSpacingCheck,
     DICOMImageOrientationCheck,
@@ -103,6 +104,7 @@ runner = GuardrailRunner(
         DICOMPatientAgeCheck(min_years=18, max_years=90),
         DICOMModalityCheck(allowed_modalities=["CT", "MR"]),
         DICOMPatientSexCheck(allowed=["M", "F", "O"]),
+        DICOMPatientPositionCheck(allowed=["HFS", "FFP", "FFS"]),
         DICOMSliceThicknessCheck(min_mm=0.5, max_mm=5),
         DICOMPixelSpacingCheck(min_mm=0.2, max_mm=2.0),
         DICOMImageOrientationCheck(tolerance=1e-3),
@@ -133,6 +135,7 @@ Specific DICOM validators:
 - `dicom_patient_age` – `min_years`, `max_years`, `inclusive` (default: true)
 - `dicom_modality` – `allowed_modalities: ["CT", "MR", ...]`
 - `dicom_patient_sex` – `allowed: ["M", "F", "O"]`
+- `dicom_patient_position_allowed` – `allowed: ["HFS", "FFP", "FFS"]`
 - `dicom_slice_thickness` – `min_mm`, `max_mm`, `inclusive`
 - `dicom_pixel_spacing` – `min_mm`, `max_mm`, `inclusive`
 - `dicom_image_orientation` – `tolerance` (default: 1e-3)
@@ -217,7 +220,7 @@ uv run black .
 
 ## Notes
 
-- DICOM tags used include: `PatientAge`, `PatientBirthDate`, `StudyDate`, `SeriesDate`, `ContentDate`, `Modality`, `PatientSex`, `SliceThickness`, `PixelSpacing`, `ImageOrientationPatient`, `KVP`, `XRayTubeCurrent`, `ExposureTime`, `ProtocolName`, `SOPClassUID`, `StructureSetROISequence`.
+- DICOM tags used include: `PatientAge`, `PatientBirthDate`, `StudyDate`, `SeriesDate`, `ContentDate`, `Modality`, `PatientSex`, `PatientPosition`, `SliceThickness`, `PixelSpacing`, `ImageOrientationPatient`, `KVP`, `XRayTubeCurrent`, `ExposureTime`, `ProtocolName`, `SOPClassUID`, `StructureSetROISequence`.
 - Age parsing supports Y/M/W/D suffixes (per DICOM), falls back to birthdate computation.
 - Validators never raise; failures are returned as `ValidationResult` and can be surfaced as warnings or errors.
 
