@@ -10,18 +10,11 @@ except Exception:  # optional import at runtime; errors handled in validate
     pydicom = None
 
 from ..runner import ValidationResult, Severity
-
-
-def _get(ds: Any, tag: str) -> Any:
-    if ds is None:
-        return None
-    if hasattr(ds, "get"):
-        try:
-            return ds.get(tag)
-        except Exception:
-            # pydicom Dataset has attribute access too
-            return getattr(ds, tag, None)
-    return getattr(ds, tag, None)
+from .generic_dicom import (
+    _get,
+    DICOMGenericNumericRangeCheck,
+    DICOMGenericValueInListCheck,
+)
 
 
 def _to_age_years(ds: Any) -> float | None:
@@ -112,54 +105,53 @@ class DICOMPatientAgeCheck:
 
 @dataclass
 class DICOMModalityCheck:
+    allowed_modalities: list[str]
     name: str = "dicom_modality_allowed"
-    allowed_modalities: list[str] = None  # e.g., ["CT", "MR", "DX"]
     severity: Severity = Severity.WARNING
     description: str = "Ensure DICOM modality matches expected set"
 
     def validate(self, ds: Any) -> ValidationResult:
-        if pydicom is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="pydicom not installed",
-                severity=Severity.ERROR,
-            )
-        modality = _get(ds, "Modality")
-        if modality is None:
-            return ValidationResult(
-                self.name, False, message="Modality missing", severity=self.severity
-            )
-        allowed = self.allowed_modalities or []
-        passed = str(modality) in allowed if allowed else True
-        msg = "" if passed else f"Modality {modality!r} not in {allowed}"
-        return ValidationResult(self.name, passed, message=msg, severity=self.severity)
+        checker = DICOMGenericValueInListCheck(
+            tag="Modality",
+            allowed_values=self.allowed_modalities,
+            name=self.name,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
+
+
+@dataclass
+class DICOMPatientPositionCheck:
+    allowed: list[str]
+    name: str = "dicom_patient_position_allowed"
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure PatientPosition is one of the allowed values"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        checker = DICOMGenericValueInListCheck(
+            tag="PatientPosition",
+            allowed_values=self.allowed,
+            name=self.name,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
 
 
 @dataclass
 class DICOMPatientSexCheck:
     name: str = "dicom_patient_sex_allowed"
-    allowed: list[str] | None = None  # e.g., ["M", "F", "O"]
+    allowed: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure DICOM PatientSex matches allowed set"
 
     def validate(self, ds: Any) -> ValidationResult:
-        if pydicom is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="pydicom not installed",
-                severity=Severity.ERROR,
-            )
-        val = _get(ds, "PatientSex")
-        if val is None:
-            return ValidationResult(
-                self.name, False, message="PatientSex missing", severity=self.severity
-            )
-        allowed = self.allowed or ["M", "F", "O"]
-        passed = str(val) in allowed
-        msg = "" if passed else f"PatientSex {val!r} not in {allowed}"
-        return ValidationResult(self.name, passed, message=msg, severity=self.severity)
+        checker = DICOMGenericValueInListCheck(
+            tag="PatientSex",
+            allowed_values=self.allowed or ["M", "F", "O"],
+            name=self.name,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
 
 
 @dataclass
@@ -172,53 +164,16 @@ class DICOMSliceThicknessCheck:
     description: str = "Ensure DICOM SliceThickness is within expected range (mm)"
 
     def validate(self, ds: Any) -> ValidationResult:
-        if pydicom is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="pydicom not installed",
-                severity=Severity.ERROR,
-            )
-        val = _get(ds, "SliceThickness")
-        if val is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="SliceThickness missing",
-                severity=self.severity,
-            )
-        try:
-            v = float(val)
-        except Exception:
-            return ValidationResult(
-                self.name,
-                False,
-                message=f"SliceThickness not numeric: {val}",
-                severity=self.severity,
-            )
-        passed = True
-        msgs = []
-        if self.min_mm is not None:
-            if self.inclusive and v < self.min_mm:
-                passed = False
-                msgs.append(f"{v} < min {self.min_mm} mm")
-            if not self.inclusive and v <= self.min_mm:
-                passed = False
-                msgs.append(f"{v} <= min {self.min_mm} mm")
-        if self.max_mm is not None:
-            if self.inclusive and v > self.max_mm:
-                passed = False
-                msgs.append(f"{v} > max {self.max_mm} mm")
-            if not self.inclusive and v >= self.max_mm:
-                passed = False
-                msgs.append(f"{v} >= max {self.max_mm} mm")
-        return ValidationResult(
-            self.name,
-            passed,
-            message="; ".join(msgs),
+        checker = DICOMGenericNumericRangeCheck(
+            tag="SliceThickness",
+            unit="mm",
+            min_val=self.min_mm,
+            max_val=self.max_mm,
+            inclusive=self.inclusive,
+            name=self.name,
             severity=self.severity,
-            context={"slice_thickness_mm": v},
         )
+        return checker.validate(ds)
 
 
 @dataclass
@@ -351,86 +306,53 @@ class DICOMImageOrientationCheck:
 
 @dataclass
 class DICOMSOPClassCheck:
+    allowed_uids: list[str]
     name: str = "dicom_sop_class_allowed"
-    allowed_uids: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure SOPClassUID is one of the allowed UIDs"
 
     def validate(self, ds: Any) -> ValidationResult:
-        if pydicom is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="pydicom not installed",
-                severity=Severity.ERROR,
-            )
-        uid = _get(ds, "SOPClassUID")
-        if uid is None:
-            return ValidationResult(
-                self.name, False, message="SOPClassUID missing", severity=self.severity
-            )
-        allowed = self.allowed_uids or []
-        passed = str(uid) in allowed if allowed else True
-        msg = "" if passed else f"SOPClassUID {uid!r} not in {allowed}"
-        return ValidationResult(self.name, passed, message=msg, severity=self.severity)
+        checker = DICOMGenericValueInListCheck(
+            name=self.name,
+            tag="SOPClassUID",
+            allowed_values=self.allowed_uids,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
 
 
 @dataclass
 class DICOMBodyPartExaminedCheck:
+    allowed: list[str]
     name: str = "dicom_body_part_examined_allowed"
-    allowed: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure BodyPartExamined is allowed"
 
     def validate(self, ds: Any) -> ValidationResult:
-        if pydicom is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="pydicom not installed",
-                severity=Severity.ERROR,
-            )
-        val = _get(ds, "BodyPartExamined")
-        if val is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="BodyPartExamined missing",
-                severity=self.severity,
-            )
-        allowed = self.allowed or []
-        passed = (str(val) in allowed) if allowed else True
-        msg = "" if passed else f"BodyPartExamined {val!r} not in {allowed}"
-        return ValidationResult(self.name, passed, message=msg, severity=self.severity)
+        checker = DICOMGenericValueInListCheck(
+            name=self.name,
+            tag="BodyPartExamined",
+            allowed_values=self.allowed,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
 
 
 @dataclass
 class DICOMPhotometricInterpretationCheck:
+    allowed: list[str]
     name: str = "dicom_photometric_interpretation_allowed"
-    allowed: list[str] | None = None  # e.g., ["MONOCHROME2", "RGB"]
     severity: Severity = Severity.WARNING
     description: str = "Ensure PhotometricInterpretation is allowed"
 
     def validate(self, ds: Any) -> ValidationResult:
-        if pydicom is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="pydicom not installed",
-                severity=Severity.ERROR,
-            )
-        val = _get(ds, "PhotometricInterpretation")
-        if val is None:
-            return ValidationResult(
-                self.name,
-                False,
-                message="PhotometricInterpretation missing",
-                severity=self.severity,
-            )
-        allowed = self.allowed or []
-        passed = (str(val) in allowed) if allowed else True
-        msg = "" if passed else f"PhotometricInterpretation {val!r} not in {allowed}"
-        return ValidationResult(self.name, passed, message=msg, severity=self.severity)
+        checker = DICOMGenericValueInListCheck(
+            name=self.name,
+            tag="PhotometricInterpretation",
+            allowed_values=self.allowed,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
 
 
 @dataclass
@@ -492,3 +414,155 @@ class DICOMPixelIntensityRangeCheck:
             severity=self.severity,
             context={"min": vmin, "max": vmax},
         )
+
+
+@dataclass
+class DICOMKVPCheck:
+    name: str = "dicom_kvp_range"
+    min_kvp: float | None = None
+    max_kvp: float | None = None
+    inclusive: bool = True
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure DICOM KVP is within expected range"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        checker = DICOMGenericNumericRangeCheck(
+            tag="KVP",
+            name=self.name,
+            unit="kVp",
+            min_val=self.min_kvp,
+            max_val=self.max_kvp,
+            inclusive=self.inclusive,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
+
+
+@dataclass
+class DICOMTubeCurrentCheck:
+    name: str = "dicom_tube_current_range"
+    min_ma: float | None = None
+    max_ma: float | None = None
+    inclusive: bool = True
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure DICOM XRayTubeCurrent is within expected range (mA)"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        checker = DICOMGenericNumericRangeCheck(
+            tag="XRayTubeCurrent",
+            name=self.name,
+            unit="mA",
+            min_val=self.min_ma,
+            max_val=self.max_ma,
+            inclusive=self.inclusive,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
+
+
+@dataclass
+class DICOMExposureTimeCheck:
+    name: str = "dicom_exposure_time_range"
+    min_ms: float | None = None
+    max_ms: float | None = None
+    inclusive: bool = True
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure DICOM ExposureTime is within expected range (ms)"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        checker = DICOMGenericNumericRangeCheck(
+            tag="ExposureTime",
+            name=self.name,
+            unit="ms",
+            min_val=self.min_ms,
+            max_val=self.max_ms,
+            inclusive=self.inclusive,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
+
+
+@dataclass
+class DICOMProtocolNameCheck:
+    allowed: list[str]
+    name: str = "dicom_protocol_name_allowed"
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure ProtocolName is allowed"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        checker = DICOMGenericValueInListCheck(
+            name=self.name,
+            tag="ProtocolName",
+            allowed_values=self.allowed,
+            severity=self.severity,
+        )
+        return checker.validate(ds)
+
+
+@dataclass
+class DICOMRTStructureCheck:
+    required_rois: list[str]
+    name: str = "dicom_rt_structure_present"
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure required ROIs are present in the RT Structure Set"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        if pydicom is None:
+            return ValidationResult(
+                self.name,
+                False,
+                message="pydicom not installed",
+                severity=Severity.ERROR,
+            )
+
+        # Check if it's an RT Structure Set
+        sop_class_uid = _get(ds, "SOPClassUID")
+        if sop_class_uid != "1.2.840.10008.5.1.4.1.1.481.3":
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Not an RT Structure Set (SOPClassUID is {sop_class_uid})",
+                severity=self.severity,
+            )
+
+        modality = _get(ds, "Modality")
+        if modality != "RTSTRUCT":
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Modality is not RTSTRUCT, but {modality}",
+                severity=self.severity,
+            )
+
+        roi_sequence = _get(ds, "StructureSetROISequence")
+        if not roi_sequence:
+            return ValidationResult(
+                self.name,
+                False,
+                message="StructureSetROISequence not found.",
+                severity=self.severity,
+            )
+
+        present_rois = {
+            item.ROIName for item in roi_sequence if hasattr(item, "ROIName")
+        }
+        missing_rois = [roi for roi in self.required_rois if roi not in present_rois]
+
+        if not missing_rois:
+            return ValidationResult(
+                self.name,
+                True,
+                severity=self.severity,
+                context={"present_rois": list(present_rois)},
+            )
+        else:
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Missing ROIs: {', '.join(missing_rois)}",
+                severity=self.severity,
+                context={
+                    "present_rois": list(present_rois),
+                    "missing_rois": missing_rois,
+                },
+            )
