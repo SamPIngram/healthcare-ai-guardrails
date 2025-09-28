@@ -702,9 +702,7 @@ class DICOMRTStructureCheck:
         present_rois = {
             item.ROIName for item in roi_sequence if hasattr(item, "ROIName")
         }
-        missing_rois = [
-            roi for roi in self.required_rois if roi not in present_rois
-        ]
+        missing_rois = [roi for roi in self.required_rois if roi not in present_rois]
 
         if not missing_rois:
             return ValidationResult(
