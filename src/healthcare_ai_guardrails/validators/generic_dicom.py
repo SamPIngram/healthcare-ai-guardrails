@@ -32,7 +32,9 @@ class DICOMGenericNumericRangeCheck:
     max_val: float | None = None
     inclusive: bool = True
     severity: Severity = Severity.WARNING
-    description: str = "Ensure a generic DICOM tag's numeric value is within an expected range"
+    description: str = (
+        "Ensure a generic DICOM tag's numeric value is within an expected range"
+    )
 
     def validate(self, ds: Any) -> ValidationResult:
         if pydicom is None:
@@ -132,7 +134,9 @@ class DICOMGenericTagTypeCheck:
     tag: str | None = None
     expected_vr: str | None = None
     severity: Severity = Severity.WARNING
-    description: str = "Ensure a generic DICOM tag has the expected Value Representation (VR)"
+    description: str = (
+        "Ensure a generic DICOM tag has the expected Value Representation (VR)"
+    )
 
     def validate(self, ds: Any) -> ValidationResult:
         if pydicom is None:

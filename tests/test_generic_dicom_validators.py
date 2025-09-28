@@ -18,9 +18,7 @@ class FakeElement:
 
 def test_generic_numeric_range_check():
     ds = FakeDS(KVP="120")
-    v = DICOMGenericNumericRangeCheck(
-        tag="KVP", unit="kVp", min_val=80, max_val=140
-    )
+    v = DICOMGenericNumericRangeCheck(tag="KVP", unit="kVp", min_val=80, max_val=140)
     assert v.validate(ds).passed is True
     ds2 = FakeDS(KVP="70")
     assert v.validate(ds2).passed is False
