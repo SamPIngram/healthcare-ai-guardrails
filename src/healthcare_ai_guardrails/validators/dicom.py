@@ -131,7 +131,7 @@ class DICOMPatientPositionCheck:
         checker = DICOMGenericValueInListCheck(
             name=self.name,
             tag="PatientPosition",
-            allowed_values=self.allowed or ["HFS", "HFP", "HFDR", "HFDL", "FFS", "FFP", "FFDR", "FFDL"],
+            allowed_values=self.allowed # e.g., ["HFS", "HFP", "HFDR", "HFDL", "FFS", "FFP", "FFDR", "FFDL"]
             severity=self.severity,
         )
         return checker.validate(ds)
