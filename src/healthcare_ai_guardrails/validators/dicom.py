@@ -722,3 +722,91 @@ class DICOMRTStructureCheck:
                     "missing_rois": missing_rois,
                 },
             )
+
+
+@dataclass
+class DICOMValueInListCheck:
+    name: str = "dicom_value_in_list"
+    tag: str | None = None
+    allowed_values: list[Any] | None = None
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure a DICOM tag's value is in the allowed list"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        if pydicom is None:
+            return ValidationResult(
+                self.name,
+                False,
+                message="pydicom not installed",
+                severity=Severity.ERROR,
+            )
+        if not self.tag:
+            return ValidationResult(
+                self.name, False, message="Tag not specified", severity=Severity.ERROR
+            )
+
+        val = _get(ds, self.tag)
+        if val is None:
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Tag {self.tag} missing",
+                severity=self.severity,
+            )
+
+        allowed = self.allowed_values or []
+        passed = val in allowed if allowed else True
+        msg = "" if passed else f"Value {val!r} for tag {self.tag} not in {allowed}"
+        return ValidationResult(self.name, passed, message=msg, severity=self.severity)
+
+
+@dataclass
+class DICOMTagTypeCheck:
+    name: str = "dicom_tag_type_check"
+    tag: str | None = None
+    expected_vr: str | None = None
+    severity: Severity = Severity.WARNING
+    description: str = "Ensure a DICOM tag has the expected Value Representation (VR)"
+
+    def validate(self, ds: Any) -> ValidationResult:
+        if pydicom is None:
+            return ValidationResult(
+                self.name,
+                False,
+                message="pydicom not installed",
+                severity=Severity.ERROR,
+            )
+        if not self.tag or not self.expected_vr:
+            return ValidationResult(
+                self.name,
+                False,
+                message="Tag or expected_vr not specified",
+                severity=Severity.ERROR,
+            )
+
+        try:
+            element = ds[self.tag]
+            actual_vr = element.VR
+            passed = actual_vr == self.expected_vr
+            msg = (
+                ""
+                if passed
+                else f"Tag {self.tag} has VR {actual_vr}, expected {self.expected_vr}"
+            )
+            return ValidationResult(
+                self.name, passed, message=msg, severity=self.severity
+            )
+        except KeyError:
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Tag {self.tag} not found in dataset",
+                severity=self.severity,
+            )
+        except Exception as exc:
+            return ValidationResult(
+                self.name,
+                False,
+                message=f"Could not validate tag type: {exc}",
+                severity=self.severity,
+            )
