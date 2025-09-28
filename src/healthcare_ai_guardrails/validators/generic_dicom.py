@@ -32,7 +32,9 @@ class DICOMGenericNumericRangeCheck:
     max_val: float | None = None
     inclusive: bool = True
     severity: Severity = Severity.WARNING
-    description: str = "Ensure a generic DICOM tag's numeric value is within an expected range"
+    description: str = (
+        "Ensure a generic DICOM tag's numeric value is within an expected range"
+    )
 
     def validate(self, ds: Any) -> ValidationResult:
         if pydicom is None:
@@ -45,7 +47,10 @@ class DICOMGenericNumericRangeCheck:
         val = _get(ds, self.tag)
         if val is None:
             return ValidationResult(
-                self.name, False, message=f"Tag {self.tag} missing", severity=self.severity
+                self.name,
+                False,
+                message=f"Tag {self.tag} missing",
+                severity=self.severity,
             )
         try:
             v = float(val)
@@ -110,7 +115,11 @@ class DICOMGenericValueInListCheck:
             )
 
         passed = val in self.allowed_values
-        msg = "" if passed else f"Value {val!r} for tag {self.tag} not in {self.allowed_values}"
+        msg = (
+            ""
+            if passed
+            else f"Value {val!r} for tag {self.tag} not in {self.allowed_values}"
+        )
         return ValidationResult(self.name, passed, message=msg, severity=self.severity)
 
 
@@ -120,7 +129,9 @@ class DICOMGenericTagTypeCheck:
     expected_vr: str
     name: str = "dicom_generic_tag_type_check"
     severity: Severity = Severity.WARNING
-    description: str = "Ensure a generic DICOM tag has the expected Value Representation (VR)"
+    description: str = (
+        "Ensure a generic DICOM tag has the expected Value Representation (VR)"
+    )
 
     def validate(self, ds: Any) -> ValidationResult:
         if pydicom is None:
