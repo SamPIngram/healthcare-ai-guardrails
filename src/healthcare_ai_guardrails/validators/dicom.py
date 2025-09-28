@@ -105,16 +105,16 @@ class DICOMPatientAgeCheck:
 
 @dataclass
 class DICOMModalityCheck:
+    allowed_modalities: list[str]
     name: str = "dicom_modality_allowed"
-    allowed_modalities: list[str] = None  # e.g., ["CT", "MR", "DX"]
     severity: Severity = Severity.WARNING
     description: str = "Ensure DICOM modality matches expected set"
 
     def validate(self, ds: Any) -> ValidationResult:
         checker = DICOMGenericValueInListCheck(
-            name=self.name,
             tag="Modality",
             allowed_values=self.allowed_modalities,
+            name=self.name,
             severity=self.severity,
         )
         return checker.validate(ds)
@@ -122,16 +122,16 @@ class DICOMModalityCheck:
 
 @dataclass
 class DICOMPatientPositionCheck:
+    allowed: list[str]
     name: str = "dicom_patient_position_allowed"
-    allowed: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure PatientPosition is one of the allowed values"
 
     def validate(self, ds: Any) -> ValidationResult:
         checker = DICOMGenericValueInListCheck(
-            name=self.name,
             tag="PatientPosition",
-            allowed_values=self.allowed # e.g., ["HFS", "HFP", "HFDR", "HFDL", "FFS", "FFP", "FFDR", "FFDL"]
+            allowed_values=self.allowed,
+            name=self.name,
             severity=self.severity,
         )
         return checker.validate(ds)
@@ -140,15 +140,15 @@ class DICOMPatientPositionCheck:
 @dataclass
 class DICOMPatientSexCheck:
     name: str = "dicom_patient_sex_allowed"
-    allowed: list[str] | None = None  # e.g., ["M", "F", "O"]
+    allowed: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure DICOM PatientSex matches allowed set"
 
     def validate(self, ds: Any) -> ValidationResult:
         checker = DICOMGenericValueInListCheck(
-            name=self.name,
             tag="PatientSex",
             allowed_values=self.allowed or ["M", "F", "O"],
+            name=self.name,
             severity=self.severity,
         )
         return checker.validate(ds)
@@ -165,12 +165,12 @@ class DICOMSliceThicknessCheck:
 
     def validate(self, ds: Any) -> ValidationResult:
         checker = DICOMGenericNumericRangeCheck(
-            name=self.name,
             tag="SliceThickness",
             unit="mm",
             min_val=self.min_mm,
             max_val=self.max_mm,
             inclusive=self.inclusive,
+            name=self.name,
             severity=self.severity,
         )
         return checker.validate(ds)
@@ -306,8 +306,8 @@ class DICOMImageOrientationCheck:
 
 @dataclass
 class DICOMSOPClassCheck:
+    allowed_uids: list[str]
     name: str = "dicom_sop_class_allowed"
-    allowed_uids: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure SOPClassUID is one of the allowed UIDs"
 
@@ -323,8 +323,8 @@ class DICOMSOPClassCheck:
 
 @dataclass
 class DICOMBodyPartExaminedCheck:
+    allowed: list[str]
     name: str = "dicom_body_part_examined_allowed"
-    allowed: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure BodyPartExamined is allowed"
 
@@ -340,8 +340,8 @@ class DICOMBodyPartExaminedCheck:
 
 @dataclass
 class DICOMPhotometricInterpretationCheck:
+    allowed: list[str]
     name: str = "dicom_photometric_interpretation_allowed"
-    allowed: list[str] | None = None  # e.g., ["MONOCHROME2", "RGB"]
     severity: Severity = Severity.WARNING
     description: str = "Ensure PhotometricInterpretation is allowed"
 
@@ -427,8 +427,8 @@ class DICOMKVPCheck:
 
     def validate(self, ds: Any) -> ValidationResult:
         checker = DICOMGenericNumericRangeCheck(
-            name=self.name,
             tag="KVP",
+            name=self.name,
             unit="kVp",
             min_val=self.min_kvp,
             max_val=self.max_kvp,
@@ -449,8 +449,8 @@ class DICOMTubeCurrentCheck:
 
     def validate(self, ds: Any) -> ValidationResult:
         checker = DICOMGenericNumericRangeCheck(
-            name=self.name,
             tag="XRayTubeCurrent",
+            name=self.name,
             unit="mA",
             min_val=self.min_ma,
             max_val=self.max_ma,
@@ -471,8 +471,8 @@ class DICOMExposureTimeCheck:
 
     def validate(self, ds: Any) -> ValidationResult:
         checker = DICOMGenericNumericRangeCheck(
-            name=self.name,
             tag="ExposureTime",
+            name=self.name,
             unit="ms",
             min_val=self.min_ms,
             max_val=self.max_ms,
@@ -484,8 +484,8 @@ class DICOMExposureTimeCheck:
 
 @dataclass
 class DICOMProtocolNameCheck:
+    allowed: list[str]
     name: str = "dicom_protocol_name_allowed"
-    allowed: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure ProtocolName is allowed"
 
@@ -501,8 +501,8 @@ class DICOMProtocolNameCheck:
 
 @dataclass
 class DICOMRTStructureCheck:
+    required_rois: list[str]
     name: str = "dicom_rt_structure_present"
-    required_rois: list[str] | None = None
     severity: Severity = Severity.WARNING
     description: str = "Ensure required ROIs are present in the RT Structure Set"
 
@@ -531,14 +531,6 @@ class DICOMRTStructureCheck:
                 self.name,
                 False,
                 message=f"Modality is not RTSTRUCT, but {modality}",
-                severity=self.severity,
-            )
-
-        if not self.required_rois:
-            return ValidationResult(
-                self.name,
-                True,
-                message="No required ROIs specified.",
                 severity=self.severity,
             )
 

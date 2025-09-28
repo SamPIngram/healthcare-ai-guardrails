@@ -11,8 +11,7 @@ Lightweight validation guardrails for AI model inputs/outputs in healthcare work
 
 - Declarative YAML spec for checks on input and output data
 - Built-in validators: numeric ranges, choices, required fields
-- **Specific DICOM validators:** patient age, modality, patient sex, patient position, slice thickness, pixel spacing, image orientation, SOP Class UID, BodyPartExamined, PhotometricInterpretation, pixel intensity range, KVP, X-Ray Tube Current, Exposure Time, Protocol Name, and RT Structure Set ROI presence.
-- **Generic DICOM validators:** check if a tag's value is in a list, check a tag's value representation (VR), and check if a tag's numeric value is within a range.
+- DICOM validators: patient age, modality, patient sex, slice thickness, pixel spacing, image orientation, SOP Class UID, BodyPartExamined, PhotometricInterpretation, pixel intensity range
 - Output structure validation via JSON Schema
 - Simple Python API and CLI (`hc-guardrails`)
 
@@ -76,51 +75,21 @@ hc-guardrails examples/spec.example.yaml path/to/output.json --mode output
 ## Python API
 
 ```python
-from healthcare_ai_guardrails import GuardrailRunner
-from healthcare_ai_guardrails.validators.dicom import (
-    DICOMPatientAgeCheck,
-    DICOMModalityCheck,
-    DICOMPatientSexCheck,
-    DICOMPatientPositionCheck,
-    DICOMSliceThicknessCheck,
-    DICOMPixelSpacingCheck,
-    DICOMImageOrientationCheck,
-    DICOMKVPCheck,
-    DICOMTubeCurrentCheck,
-    DICOMExposureTimeCheck,
-    DICOMProtocolNameCheck,
-    DICOMRTStructureCheck,
-)
-from healthcare_ai_guardrails.validators.generic_dicom import (
-    DICOMGenericNumericRangeCheck,
-    DICOMGenericValueInListCheck,
-    DICOMGenericTagTypeCheck,
+from healthcare_ai_guardrails import (
+    GuardrailRunner, DICOMPatientAgeCheck, DICOMModalityCheck,
+    DICOMPatientSexCheck, DICOMSliceThicknessCheck, DICOMPixelSpacingCheck,
+    DICOMImageOrientationCheck
 )
 import pydicom
 
-runner = GuardrailRunner(
-    [
-        # Specific Validators
-        DICOMPatientAgeCheck(min_years=18, max_years=90),
-        DICOMModalityCheck(allowed_modalities=["CT", "MR"]),
-        DICOMPatientSexCheck(allowed=["M", "F", "O"]),
-        DICOMPatientPositionCheck(allowed=["HFS", "FFP", "FFS"]),
-        DICOMSliceThicknessCheck(min_mm=0.5, max_mm=5),
-        DICOMPixelSpacingCheck(min_mm=0.2, max_mm=2.0),
-        DICOMImageOrientationCheck(tolerance=1e-3),
-        DICOMKVPCheck(min_kvp=80, max_kvp=140),
-        DICOMTubeCurrentCheck(min_ma=100, max_ma=500),
-        DICOMExposureTimeCheck(min_ms=50, max_ms=200),
-        DICOMProtocolNameCheck(allowed=["Axial Brain", "Sagittal Spine"]),
-        DICOMRTStructureCheck(required_rois=["Heart", "Lungs"]),
-        # Generic Validators
-        DICOMGenericValueInListCheck(
-            tag="Manufacturer", allowed_values=["SIEMENS", "GE"]
-        ),
-        DICOMGenericTagTypeCheck(tag="PatientName", expected_vr="PN"),
-        DICOMGenericNumericRangeCheck(tag="BeamNumber", min_val=1, max_val=10),
-    ]
-)
+runner = GuardrailRunner([
+    DICOMPatientAgeCheck(min_years=18, max_years=90),
+    DICOMModalityCheck(allowed_modalities=["CT", "MR"]),
+    DICOMPatientSexCheck(allowed=["M", "F", "O"]),
+    DICOMSliceThicknessCheck(min_mm=0.5, max_mm=5),
+    DICOMPixelSpacingCheck(min_mm=0.2, max_mm=2.0),
+    DICOMImageOrientationCheck(tolerance=1e-3),
+])
 
 ds = pydicom.dcmread("/path/to/file.dcm")
 results = runner.run(ds)
@@ -130,28 +99,16 @@ for r in results:
 
 ## YAML Spec schema
 
-Specific DICOM validators:
+Input validators:
 
 - `dicom_patient_age` – `min_years`, `max_years`, `inclusive` (default: true)
-- `dicom_modality` – `allowed_modalities: ["CT", "MR", ...]`
+- `dicom_modality` – `allowed: ["CT", "MR", ...]`
 - `dicom_patient_sex` – `allowed: ["M", "F", "O"]`
-- `dicom_patient_position_allowed` – `allowed: ["HFS", "FFP", "FFS"]`
 - `dicom_slice_thickness` – `min_mm`, `max_mm`, `inclusive`
 - `dicom_pixel_spacing` – `min_mm`, `max_mm`, `inclusive`
 - `dicom_image_orientation` – `tolerance` (default: 1e-3)
-- `dicom_kvp_range` – `min_kvp`, `max_kvp`, `inclusive`
-- `dicom_tube_current_range` – `min_ma`, `max_ma`, `inclusive`
-- `dicom_exposure_time_range` – `min_ms`, `max_ms`, `inclusive`
-- `dicom_protocol_name_allowed` – `allowed: ["Axial Brain", ...]`
-- `dicom_rt_structure_present` – `required_rois: ["Heart", ...]`
 
-Generic DICOM validators:
-
-- `dicom_generic_numeric_range` – `tag`, `unit`, `min_val`, `max_val`, `inclusive`
-- `dicom_generic_value_in_list` – `tag`, `allowed_values: [...]`
-- `dicom_generic_tag_type_check` – `tag`, `expected_vr`
-
-Other generic validators:
+Generic validators:
 
 - `range` – `path: [..]`, `min`, `max`, `inclusive`
 - `choice` – `path: [..]`, `allowed: [...]`, `case_insensitive`
@@ -220,7 +177,7 @@ uv run black .
 
 ## Notes
 
-- DICOM tags used include: `PatientAge`, `PatientBirthDate`, `StudyDate`, `SeriesDate`, `ContentDate`, `Modality`, `PatientSex`, `PatientPosition`, `SliceThickness`, `PixelSpacing`, `ImageOrientationPatient`, `KVP`, `XRayTubeCurrent`, `ExposureTime`, `ProtocolName`, `SOPClassUID`, `StructureSetROISequence`.
+- DICOM tags used include: `PatientAge`, `PatientBirthDate`, `StudyDate`, `SeriesDate`, `ContentDate`, `Modality`, `PatientSex`, `SliceThickness`, `PixelSpacing`, `ImageOrientationPatient`.
 - Age parsing supports Y/M/W/D suffixes (per DICOM), falls back to birthdate computation.
 - Validators never raise; failures are returned as `ValidationResult` and can be surfaced as warnings or errors.
 
