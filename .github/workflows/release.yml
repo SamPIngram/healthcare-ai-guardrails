@@ -8,9 +8,61 @@ jobs:
   tests:
     uses: ./.github/workflows/test-suite.yml
 
-  build:
+  update-metadata:
     runs-on: ubuntu-latest
     needs: tests
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Derive version from tag
+        id: get_version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          # strip leading 'v' if present
+          VER="${TAG#v}"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+      - name: Update pyproject.toml version
+        run: |
+          ver='${{ steps.get_version.outputs.version }}'
+          echo "Bumping pyproject.toml to version $ver"
+          sed -i -E "s/^version = \".*\"/version = \"${ver}\"/" pyproject.toml
+      - name: Update CHANGELOG.md
+        run: |
+          ver='${{ steps.get_version.outputs.version }}'
+          rel_date="$(date -u +%Y-%m-%d)"
+          notes='${{ github.event.release.body }}'
+          header="## v${ver} - ${rel_date}"
+          tmp=$(mktemp)
+          {
+            echo "$header";
+            echo "";
+            if [ -n "$notes" ]; then echo "$notes"; else echo "Release v${ver}."; fi;
+            echo "";
+            if [ -f CHANGELOG.md ]; then cat CHANGELOG.md; fi
+          } > "$tmp"
+          mv "$tmp" CHANGELOG.md
+      - name: Commit and push changes
+        run: |
+          ver='${{ steps.get_version.outputs.version }}'
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add pyproject.toml CHANGELOG.md
+            git commit -m "chore(release): v${ver} [skip ci]"
+            git push
+          fi
+
+  build:
+    runs-on: ubuntu-latest
+    needs: update-metadata
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python 3.12
