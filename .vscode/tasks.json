@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "pre-commit: install hooks",
+            "type": "shell",
+            "command": "pre-commit install",
+            "problemMatcher": []
+        },
+        {
+            "label": "pre-commit: run all",
+            "type": "shell",
+            "command": "pre-commit run --all-files",
+            "problemMatcher": []
+        }
+    ]
+}

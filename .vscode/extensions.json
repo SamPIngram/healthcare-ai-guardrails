@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "psf.black-formatter",
+        "sedders123.pre-commit",
+        "sourcery.sourcery",
+        "codezombiech.gitignore"
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "git.enableCommitSigning": false,
+    "pre-commit.installOnSave": false,
+    "pre-commit.python": "python",
+    "editor.formatOnSave": true,
+    "python.formatting.provider": "black",
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.linting.pylintEnabled": false
+}
