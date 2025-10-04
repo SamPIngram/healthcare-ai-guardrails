@@ -4,13 +4,13 @@
         {
             "label": "pre-commit: install hooks",
             "type": "shell",
-            "command": "pre-commit install",
+            "command": "uv run pre-commit install",
             "problemMatcher": []
         },
         {
             "label": "pre-commit: run all",
             "type": "shell",
-            "command": "pre-commit run --all-files",
+            "command": "uv run pre-commit run --all-files",
             "problemMatcher": []
         }
     ]
