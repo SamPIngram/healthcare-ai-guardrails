@@ -18,6 +18,8 @@ from .validators.dicom import (
     DICOMBodyPartExaminedCheck,
     DICOMPhotometricInterpretationCheck,
     DICOMPixelIntensityRangeCheck,
+    DICOMProtocolNameCheck,
+    DICOMRTStructureCheck,
 )
 from .config import load_spec
 
@@ -38,5 +40,7 @@ __all__ = [
     "DICOMBodyPartExaminedCheck",
     "DICOMPhotometricInterpretationCheck",
     "DICOMPixelIntensityRangeCheck",
+    "DICOMProtocolNameCheck",
+    "DICOMRTStructureCheck",
     "load_spec",
 ]
