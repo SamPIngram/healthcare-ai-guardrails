@@ -73,6 +73,26 @@ Run on a JSON output:
 hc-guardrails examples/spec.example.yaml path/to/output.json --mode output
 ```
 
+### Autocontouring tutorial (CT + RTSTRUCT)
+
+See `examples/tutorials/` for a small end-to-end example that validates a CT input and an RT Structure Set output.
+
+Run the Python walkthrough:
+
+```bash
+python examples/tutorials/autocontouring_tutorial.py
+```
+
+Or run the same checks via CLI using the YAML spec:
+
+```bash
+# Input (CT)
+hc-guardrails examples/tutorials/autocontouring_tutorial.yaml path/to/ct.dcm --mode input
+
+# Output (RTSTRUCT)
+hc-guardrails examples/tutorials/autocontouring_tutorial.yaml path/to/rs.dcm --mode output
+```
+
 ## Python API
 
 ```python

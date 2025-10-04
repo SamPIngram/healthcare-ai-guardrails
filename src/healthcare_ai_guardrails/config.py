@@ -11,6 +11,7 @@ from .validators.basic import RangeCheck, ChoiceCheck, RequiredFieldsCheck
 from .validators.dicom import (
     DICOMModalityCheck,
     DICOMPatientAgeCheck,
+    DICOMPatientPositionCheck,
     DICOMPatientSexCheck,
     DICOMSliceThicknessCheck,
     DICOMPixelSpacingCheck,
@@ -19,8 +20,18 @@ from .validators.dicom import (
     DICOMBodyPartExaminedCheck,
     DICOMPhotometricInterpretationCheck,
     DICOMPixelIntensityRangeCheck,
+    DICOMProtocolNameCheck,
+    DICOMRTStructureCheck,
+    DICOMKVPCheck,
+    DICOMTubeCurrentCheck,
+    DICOMExposureTimeCheck,
 )
 from .validators.schema import JSONSchemaCheck
+from .validators.generic_dicom import (
+    DICOMGenericNumericRangeCheck,
+    DICOMGenericValueInListCheck,
+    DICOMGenericTagTypeCheck,
+)
 
 
 ValidatorObj = Any
@@ -74,7 +85,7 @@ def _build_validator(entry: Dict[str, Any]) -> ValidatorObj:
             severity=severity,
             description=desc,
         )
-    if t == "dicom_patient_age":
+    if t in ("dicom_patient_age", "dicom_patient_age_range"):
         return DICOMPatientAgeCheck(
             name=name,
             min_years=entry.get("min_years"),
@@ -83,21 +94,28 @@ def _build_validator(entry: Dict[str, Any]) -> ValidatorObj:
             severity=severity,
             description=desc,
         )
-    if t == "dicom_modality":
+    if t in ("dicom_modality", "dicom_modality_allowed"):
         return DICOMModalityCheck(
             name=name,
             allowed_modalities=entry.get("allowed", []),
             severity=severity,
             description=desc,
         )
-    if t == "dicom_patient_sex":
+    if t in ("dicom_patient_sex", "dicom_patient_sex_allowed"):
         return DICOMPatientSexCheck(
             name=name,
             allowed=entry.get("allowed", ["M", "F", "O"]),
             severity=severity,
             description=desc,
         )
-    if t == "dicom_slice_thickness":
+    if t in ("dicom_patient_position", "dicom_patient_position_allowed"):
+        return DICOMPatientPositionCheck(
+            name=name,
+            allowed=entry.get("allowed", []),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("dicom_slice_thickness", "dicom_slice_thickness_range"):
         return DICOMSliceThicknessCheck(
             name=name,
             min_mm=entry.get("min_mm"),
@@ -106,7 +124,7 @@ def _build_validator(entry: Dict[str, Any]) -> ValidatorObj:
             severity=severity,
             description=desc,
         )
-    if t == "dicom_pixel_spacing":
+    if t in ("dicom_pixel_spacing", "dicom_pixel_spacing_range"):
         return DICOMPixelSpacingCheck(
             name=name,
             min_mm=entry.get("min_mm"),
@@ -115,10 +133,24 @@ def _build_validator(entry: Dict[str, Any]) -> ValidatorObj:
             severity=severity,
             description=desc,
         )
-    if t == "dicom_image_orientation":
+    if t in ("dicom_image_orientation", "dicom_image_orientation_sane"):
         return DICOMImageOrientationCheck(
             name=name,
             tolerance=entry.get("tolerance", 1e-3),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("dicom_protocol_name", "dicom_protocol_name_allowed"):
+        return DICOMProtocolNameCheck(
+            name=name,
+            allowed=entry.get("allowed", []),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("dicom_rt_structure", "dicom_rt_structure_present"):
+        return DICOMRTStructureCheck(
+            name=name,
+            required_rois=entry.get("required_rois", []),
             severity=severity,
             description=desc,
         )
@@ -152,10 +184,64 @@ def _build_validator(entry: Dict[str, Any]) -> ValidatorObj:
             severity=severity,
             description=desc,
         )
+    if t in ("dicom_kvp", "dicom_kvp_range"):
+        return DICOMKVPCheck(
+            name=name,
+            min_kvp=entry.get("min_kvp"),
+            max_kvp=entry.get("max_kvp"),
+            inclusive=entry.get("inclusive", True),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("dicom_tube_current", "dicom_tube_current_range"):
+        return DICOMTubeCurrentCheck(
+            name=name,
+            min_ma=entry.get("min_ma"),
+            max_ma=entry.get("max_ma"),
+            inclusive=entry.get("inclusive", True),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("dicom_exposure_time", "dicom_exposure_time_range"):
+        return DICOMExposureTimeCheck(
+            name=name,
+            min_ms=entry.get("min_ms"),
+            max_ms=entry.get("max_ms"),
+            inclusive=entry.get("inclusive", True),
+            severity=severity,
+            description=desc,
+        )
     if t == "json_schema":
         return JSONSchemaCheck(
             name=name,
             schema=entry.get("schema"),
+            severity=severity,
+            description=desc,
+        )
+    if t == "dicom_generic_numeric_range":
+        return DICOMGenericNumericRangeCheck(
+            name=name,
+            tag=entry.get("tag"),
+            unit=entry.get("unit", ""),
+            min_val=entry.get("min_val"),
+            max_val=entry.get("max_val"),
+            inclusive=entry.get("inclusive", True),
+            severity=severity,
+            description=desc,
+        )
+    if t == "dicom_generic_value_in_list":
+        return DICOMGenericValueInListCheck(
+            name=name,
+            tag=entry.get("tag"),
+            allowed_values=entry.get("allowed_values", []),
+            severity=severity,
+            description=desc,
+        )
+    if t == "dicom_generic_tag_type_check":
+        return DICOMGenericTagTypeCheck(
+            name=name,
+            tag=entry.get("tag"),
+            expected_vr=entry.get("expected_vr"),
             severity=severity,
             description=desc,
         )

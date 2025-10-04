@@ -1,0 +1,29 @@
+# Autocontouring tutorial spec for hc-guardrails CLI
+# Validates a CT input and an RTSTRUCT output
+
+input:
+  - type: dicom_patient_age
+    name: ct_patient_age_25_65
+    severity: warning
+    min_years: 25
+    max_years: 65
+    inclusive: true
+  - type: dicom_modality
+    name: ct_modality_is_ct
+    severity: warning
+    allowed: ["CT"]
+  - type: dicom_protocol_name
+    name: ct_protocol_head_and_neck
+    severity: warning
+    description: "ProtocolName should indicate Head and Neck"
+    allowed:
+      - "Head and Neck"
+      - "Head and Neck Contrast"
+      - "H&N"
+
+output:
+  - type: dicom_rt_structure
+    name: rs_has_oral_cavity
+    severity: error
+    required_rois:
+      - "OralCavity"

@@ -12,6 +12,7 @@ What is validated
 
 Files
 - `autocontouring_tutorial.py` – runnable script demonstrating the checks
+- `autocontouring_tutorial.yaml` – YAML spec to run the same checks via the CLI
 
 Run
 ```bash
@@ -20,6 +21,21 @@ uv run python examples/tutorials/autocontouring_tutorial.py
 
 # Or standard Python
 python examples/tutorials/autocontouring_tutorial.py
+
+# Run the same checks via the CLI using the YAML spec:
+# Input (CT) validations
+hc-guardrails examples/tutorials/autocontouring_tutorial.yaml $(python - <<'PY'
+import sys
+from pydicom.data import get_testdata_file
+p = get_testdata_file('CT_small.dcm')
+print(p if p else 'path/to/ct.dcm')
+PY
+) --mode input
+
+# Output (RTSTRUCT) validation. If you have an RS DICOM, use its path; otherwise
+# the Python tutorial shows how to construct a minimal RTSTRUCT in-memory.
+# Here we show the command form assuming you have `rs.dcm`:
+hc-guardrails examples/tutorials/autocontouring_tutorial.yaml rs.dcm --mode output
 ```
 
 Implementation notes
