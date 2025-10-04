@@ -18,6 +18,12 @@ from .generic_dicom import (
 
 
 def _to_age_years(ds: Any) -> float | None:
+    """Return patient age in years.
+
+    Prefer PatientAge (0010,1010). If missing, compute from PatientBirthDate
+    and a scan/reference date (StudyDate, AcquisitionDate, SeriesDate, ContentDate,
+    or InstanceCreationDate). If neither are parseable, return None.
+    """
     # Prefer PatientAge (0010,1010) if present: format like '034Y'
     age_val = _get(ds, "PatientAge")
     if age_val:
@@ -34,21 +40,32 @@ def _to_age_years(ds: Any) -> float | None:
             # fallthrough treat as years
             return float(s)
         except Exception:
+            # fall back to birth/scan date computation below
             pass
-    # Fallback: from PatientBirthDate (YYYYMMDD) and StudyDate
-    birth = _get(ds, "PatientBirthDate")
-    study = _get(ds, "StudyDate") or _get(ds, "SeriesDate") or _get(ds, "ContentDate")
-    fmt = "%Y%m%d"
-    try:
-        if birth:
-            b = datetime.strptime(str(birth), fmt)
-            ref_date = (
-                datetime.strptime(str(study), fmt) if study else datetime.utcnow()
-            )
-            days = (ref_date - b).days
-            return days / 365.25
-    except Exception:
-        return None
+
+    def _parse_date(val: Any) -> datetime | None:
+        if not val:
+            return None
+        s = str(val).strip()
+        try:
+            return datetime.strptime(s, "%Y%m%d")
+        except Exception:
+            return None
+
+    birth = _parse_date(_get(ds, "PatientBirthDate"))
+    # Prefer scan/study-related dates in priority order
+    ref = (
+        _parse_date(_get(ds, "StudyDate"))
+        or _parse_date(_get(ds, "AcquisitionDate"))
+        or _parse_date(_get(ds, "SeriesDate"))
+        or _parse_date(_get(ds, "ContentDate"))
+        or _parse_date(_get(ds, "InstanceCreationDate"))
+    )
+
+    if birth and ref:
+        days = (ref - birth).days
+        return days / 365.25
+    # If either is missing or unparsable, we cannot compute an accurate age
     return None
 
 

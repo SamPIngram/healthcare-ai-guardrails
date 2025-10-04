@@ -14,6 +14,7 @@ Run:
   # or
   python examples/tutorials/autocontouring_tutorial.py
 """
+
 from __future__ import annotations
 
 from typing import List
@@ -25,7 +26,13 @@ from pydicom.data import get_testdata_file
 from pydicom.dataset import Dataset
 from pydicom.sequence import Sequence
 
-from healthcare_ai_guardrails import GuardrailRunner, DICOMPatientAgeCheck, DICOMModalityCheck, DICOMProtocolNameCheck, DICOMRTStructureCheck
+from healthcare_ai_guardrails import (
+    GuardrailRunner,
+    DICOMPatientAgeCheck,
+    DICOMModalityCheck,
+    DICOMProtocolNameCheck,
+    DICOMRTStructureCheck,
+)
 from healthcare_ai_guardrails.runner import Severity
 
 
@@ -97,7 +104,9 @@ def main() -> int:
         validators=[
             DICOMPatientAgeCheck(min_years=25, max_years=65),
             DICOMModalityCheck(allowed_modalities=["CT"]),
-            DICOMProtocolNameCheck(allowed=["Head and Neck", "Head and Neck Contrast", "H&N"]),
+            DICOMProtocolNameCheck(
+                allowed=["Head and Neck", "Head and Neck Contrast", "H&N"]
+            ),
         ]
     )
 
@@ -115,12 +124,18 @@ def main() -> int:
                 msg = f"protocol={getattr(ct, 'ProtocolName', '')} allowed"
             else:
                 msg = "OK"
-        print(f" - [{res.severity.name}] {res.name}: {'PASS' if res.passed else 'FAIL'} - {msg}")
+        print(
+            f" - [{res.severity.name}] {res.name}: {'PASS' if res.passed else 'FAIL'} - {msg}"
+        )
 
     # Output validation
     output_runner = GuardrailRunner(
         validators=[
-            DICOMRTStructureCheck(required_rois=["OralCavity"], severity=Severity.ERROR, name="rs_has_oral_cavity")
+            DICOMRTStructureCheck(
+                required_rois=["OralCavity"],
+                severity=Severity.ERROR,
+                name="rs_has_oral_cavity",
+            )
         ]
     )
 
@@ -128,17 +143,25 @@ def main() -> int:
     print("\nOutput RS guardrails (expected PASS):")
     for res in output_runner.run(rs_ok):
         msg = res.message or (
-            f"present_rois={res.context.get('present_rois')}" if getattr(res, 'context', None) and res.context.get('present_rois') else "OK"
+            f"present_rois={res.context.get('present_rois')}"
+            if getattr(res, "context", None) and res.context.get("present_rois")
+            else "OK"
         )
-        print(f" - [{res.severity.name}] {res.name}: {'PASS' if res.passed else 'FAIL'} - {msg}")
+        print(
+            f" - [{res.severity.name}] {res.name}: {'PASS' if res.passed else 'FAIL'} - {msg}"
+        )
 
     rs_bad = load_or_make_rtstruct(include_oral_cavity=False)
     print("\nOutput RS guardrails (expected FAIL):")
     for res in output_runner.run(rs_bad):
         msg = res.message or (
-            f"present_rois={res.context.get('present_rois')}" if getattr(res, 'context', None) and res.context.get('present_rois') else "OK"
+            f"present_rois={res.context.get('present_rois')}"
+            if getattr(res, "context", None) and res.context.get("present_rois")
+            else "OK"
         )
-        print(f" - [{res.severity.name}] {res.name}: {'PASS' if res.passed else 'FAIL'} - {msg}")
+        print(
+            f" - [{res.severity.name}] {res.name}: {'PASS' if res.passed else 'FAIL'} - {msg}"
+        )
 
     return 0
 
