@@ -1,3 +1,7 @@
+## v0.3.0-alpha - 2025-10-06
+
+**Full Changelog**: https://github.com/SamPIngram/healthcare-ai-guardrails/compare/v0.2.0-alpha...v0.3.0-alpha
+
 ## 0.2.0 - 2025-09-29
 
 ### Added
