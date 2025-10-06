@@ -15,6 +15,8 @@ Lightweight validation guardrails for AI model inputs/outputs in healthcare work
 - **Generic DICOM validators:** check if a tag's value is in a list, check a tag's value representation (VR), and check if a tag's numeric value is within a range.
 - Output structure validation via JSON Schema
 - Simple Python API and CLI (`hc-guardrails`)
+- HL7 v2 support: basic field, value-in-list, regex, and numeric range checks via simple path syntax (e.g., PID-5.1)
+ - HL7 v3 (XML) support: XPath-based validators for exists, value-in-list, regex, and numeric range with namespace support
 
 ## Install (users)
 
@@ -81,6 +83,50 @@ Run the Python walkthrough:
 
 ```bash
 python examples/tutorials/autocontouring_tutorial.py
+```
+
+### HL7 v2 (ADT/ORM/ORU etc.)
+
+You can validate HL7 v2 messages using a lightweight path syntax: `SEG-Field[rep].Comp.Sub` (1-based indices). Examples:
+
+- `MSH-9.1` → Message type (e.g., ADT)
+- `PID-5.1` → Family name
+- `PID-3[2].1` → Second repetition of PID-3, first component
+
+Example spec: `examples/hl7v2.example.yaml` (preferred naming; `examples/hl7.example.yaml` retained for compatibility). Run against the provided sample message (or any `.hl7` file starting with MSH):
+
+```bash
+hc-guardrails examples/hl7v2.example.yaml examples/hl7v2.sample.hl7 --mode input
+```
+
+### HL7 v3 (XML/CDA/CCDA)
+
+Validate HL7 v3 XML using XPath with namespaces.
+
+Example spec: `examples/hl7v3.example.yaml`. Run against the provided sample XML (or any HL7 v3 XML document):
+
+```bash
+hc-guardrails examples/hl7v3.example.yaml examples/hl7v3.sample.xml --mode input
+```
+
+### HL7 v2 vs FHIR
+
+- HL7 v2: Pipe-delimited messages (MSH/PID/OBR/OBX…). Use the HL7 v2 validators and path syntax above (SEG-Field[rep].Comp.Sub). The CLI auto-detects HL7 v2 when the file starts with MSH.
+- FHIR: JSON or NDJSON resources (Patient, Observation, Bundle, etc.). Treat these as JSON and validate using `json_schema` plus the generic validators (`range`, `choice`, `required_fields`). You can author a JSON Schema for your resource(s) and reference it directly in the YAML spec.
+
+Example (FHIR Patient minimal schema):
+
+```yaml
+output:
+  - type: json_schema
+    name: fhir_patient_minimal
+    schema:
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      required: ["resourceType", "id"]
+      properties:
+        resourceType:
+          const: "Patient"
 ```
 
 Or run the same checks via CLI using the YAML spec:

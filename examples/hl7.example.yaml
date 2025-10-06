@@ -1,0 +1,26 @@
+# Example HL7 v2 guardrails
+# Validate key fields from an HL7 ADT message
+
+input:
+  - type: hl7_field_exists
+    name: msh_sending_app_present
+    path: MSH-3
+    severity: warning
+  - type: hl7_value_in_list
+    name: message_type_allowed
+    path: MSH-9.1
+    allowed: ["ADT", "ORM", "ORU"]
+    case_insensitive: true
+    severity: warning
+  - type: hl7_regex_match
+    name: patient_id_format
+    path: PID-3.1
+    pattern: "[A-Z0-9]{6,12}"
+    severity: warning
+  - type: hl7_numeric_range
+    name: patient_weight_range
+    path: PID-35
+    min: 1
+    max: 500
+    inclusive: true
+    severity: warning

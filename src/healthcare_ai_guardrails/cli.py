@@ -23,6 +23,25 @@ def _read_json(path: Path) -> Any:
         return json.load(f)
 
 
+def _read_text(path: Path) -> str:
+    with path.open("r", encoding="utf-8", errors="ignore") as f:
+        return f.read()
+
+
+def _read_xml(path: Path) -> Any:
+    try:
+        # Prefer lxml if available
+        try:
+            from lxml import etree as ET  # type: ignore
+        except Exception:  # pragma: no cover
+            import xml.etree.ElementTree as ET  # type: ignore
+        tree = ET.parse(str(path))
+        # For lxml, pass the root Element (supports rich xpath); for stdlib, ElementTree works with .findall
+        return tree.getroot()
+    except Exception as exc:
+        raise SystemExit(f"Failed to read XML: {exc}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Healthcare AI Guardrails")
     parser.add_argument("spec", type=str, help="Path to YAML spec file")
@@ -38,8 +57,21 @@ def main(argv: list[str] | None = None) -> int:
     data_path = Path(args.data)
     if data_path.suffix.lower() in {".dcm", ".dicom"}:
         data = _read_dicom(data_path)
-    else:
+    elif data_path.suffix.lower() in {".json"}:
         data = _read_json(data_path)
+    elif data_path.suffix.lower() in {".xml"}:
+        data = _read_xml(data_path)
+    else:
+        # Try HL7 v2 text files (.hl7 or no extension) or fall back to raw text
+        text = _read_text(data_path)
+        if text.strip().startswith("MSH"):
+            data = text  # HL7 v2 message string
+        else:
+            # Fallback: attempt JSON parse, else keep as raw text
+            try:
+                data = json.loads(text)
+            except Exception:
+                data = text
 
     validators = (
         spec.input_validators if args.mode == "input" else spec.output_validators

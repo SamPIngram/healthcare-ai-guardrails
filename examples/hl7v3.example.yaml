@@ -1,0 +1,37 @@
+# Example HL7 v3 (XML) guardrails
+# Validates elements via XPath with optional namespaces
+
+# Suppose a CDA header-like structure with xmlns:hl7="urn:hl7-org:v3"
+# Use namespaces: { hl7: urn:hl7-org:v3 }
+
+input:
+  - type: hl7v3_xpath_exists
+    name: has_id
+    xpath: //hl7:id
+    namespaces:
+      hl7: urn:hl7-org:v3
+
+  - type: hl7v3_xpath_value_in_list
+    name: doc_type_allowed
+    xpath: //hl7:code
+    attr: code
+    allowed: ["34133-9", "18842-5"]
+    namespaces:
+      hl7: urn:hl7-org:v3
+
+  - type: hl7v3_xpath_regex_match
+    name: id_root_format
+    xpath: //hl7:id
+    attr: root
+    pattern: "[0-9.]+"
+    namespaces:
+      hl7: urn:hl7-org:v3
+
+  - type: hl7v3_xpath_numeric_range
+    name: observation_value_range
+    xpath: //hl7:value
+    attr: value
+    min: 0
+    max: 300
+    namespaces:
+      hl7: urn:hl7-org:v3

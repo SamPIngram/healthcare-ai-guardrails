@@ -32,6 +32,18 @@ from .validators.generic_dicom import (
     DICOMGenericValueInListCheck,
     DICOMGenericTagTypeCheck,
 )
+from .validators.hl7 import (
+    HL7FieldExistsCheck,
+    HL7ValueInListCheck,
+    HL7RegexMatchCheck,
+    HL7NumericRangeCheck,
+)
+from .validators.hl7v3 import (
+    HL7v3XPathExistsCheck,
+    HL7v3XPathValueInListCheck,
+    HL7v3XPathRegexMatchCheck,
+    HL7v3XPathNumericRangeCheck,
+)
 
 
 ValidatorObj = Any
@@ -215,6 +227,83 @@ def _build_validator(entry: Dict[str, Any]) -> ValidatorObj:
         return JSONSchemaCheck(
             name=name,
             schema=entry.get("schema"),
+            severity=severity,
+            description=desc,
+        )
+    # HL7 v2 validators
+    if t in ("hl7v2_field_exists", "hl7_field_exists", "hl7_required_field"):
+        return HL7FieldExistsCheck(
+            name=name,
+            path=entry.get("path"),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("hl7v2_value_in_list", "hl7_value_in_list", "hl7_choice"):
+        return HL7ValueInListCheck(
+            name=name,
+            path=entry.get("path"),
+            allowed=entry.get("allowed", []),
+            case_insensitive=entry.get("case_insensitive", False),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("hl7v2_regex_match", "hl7_regex_match", "hl7_pattern"):
+        return HL7RegexMatchCheck(
+            name=name,
+            path=entry.get("path"),
+            pattern=entry.get("pattern", ".*"),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("hl7v2_numeric_range", "hl7_numeric_range", "hl7_range"):
+        return HL7NumericRangeCheck(
+            name=name,
+            path=entry.get("path"),
+            min_value=entry.get("min"),
+            max_value=entry.get("max"),
+            inclusive=entry.get("inclusive", True),
+            severity=severity,
+            description=desc,
+        )
+    # HL7 v3 (XML/XPath) validators
+    if t in ("hl7v3_xpath_exists", "hl7v3_required"):
+        return HL7v3XPathExistsCheck(
+            name=name,
+            xpath=entry.get("xpath"),
+            namespaces=entry.get("namespaces"),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("hl7v3_xpath_value_in_list", "hl7v3_xpath_choice"):
+        return HL7v3XPathValueInListCheck(
+            name=name,
+            xpath=entry.get("xpath"),
+            allowed=entry.get("allowed", []),
+            namespaces=entry.get("namespaces"),
+            case_insensitive=entry.get("case_insensitive", False),
+            attr=entry.get("attr"),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("hl7v3_xpath_regex_match", "hl7v3_xpath_pattern"):
+        return HL7v3XPathRegexMatchCheck(
+            name=name,
+            xpath=entry.get("xpath"),
+            pattern=entry.get("pattern", ".*"),
+            namespaces=entry.get("namespaces"),
+            attr=entry.get("attr"),
+            severity=severity,
+            description=desc,
+        )
+    if t in ("hl7v3_xpath_numeric_range", "hl7v3_xpath_range"):
+        return HL7v3XPathNumericRangeCheck(
+            name=name,
+            xpath=entry.get("xpath"),
+            min_value=entry.get("min"),
+            max_value=entry.get("max"),
+            inclusive=entry.get("inclusive", True),
+            namespaces=entry.get("namespaces"),
+            attr=entry.get("attr"),
             severity=severity,
             description=desc,
         )
