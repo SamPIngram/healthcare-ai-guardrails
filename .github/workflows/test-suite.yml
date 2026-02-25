@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     name: Python ${{ matrix.python-version }} tests
     steps:
       - uses: actions/checkout@v4
@@ -22,4 +22,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[test]
       - name: Run tests
-        run: pytest -q
+        run: pytest
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml

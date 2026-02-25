@@ -13,6 +13,11 @@ authors = [{ name = "Sam Ingram", email = "sampingram12@gmail.com" }]
 keywords = ["AI", "ML", "Healthcare", "DICOM", "Validation", "Guardrails"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Intended Audience :: Healthcare Industry",
@@ -23,22 +28,28 @@ dependencies = [
     "PyYAML>=6.0",
     "jsonschema>=4.20",
     "numpy>=1.22",
-    "pre-commit>=4.3.0",
     "lxml>=6.0.2",
 ]
 
 [project.optional-dependencies]
 test = [
     "pytest>=8.4.2",
+    "pytest-cov>=5.0",
 ]
 lint = [
     "ruff",
     "black",
+    "mypy>=1.0",
+]
+dev = [
+    "healthcare-ai-guardrails[test,lint]",
+    "pre-commit>=4.3.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/SamPIngram/healthcare-ai-guardrails"
 Issues = "https://github.com/SamPIngram/healthcare-ai-guardrails/issues"
+Changelog = "https://github.com/SamPIngram/healthcare-ai-guardrails/blob/main/CHANGELOG.md"
 
 [project.scripts]
 hc-guardrails = "healthcare_ai_guardrails.cli:main"
@@ -51,7 +62,21 @@ where = ["src"]
 include = ["healthcare_ai_guardrails*"]
 exclude = []
 
+[tool.setuptools.package-data]
+healthcare_ai_guardrails = ["py.typed"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-q"
+addopts = "-q --cov=healthcare_ai_guardrails --cov-report=term-missing --cov-report=xml"
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/healthcare_ai_guardrails"]
+omit = ["*/testing/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
