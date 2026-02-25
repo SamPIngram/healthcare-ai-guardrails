@@ -37,16 +37,19 @@ jobs:
           echo "Bumping pyproject.toml to version $ver"
           sed -i -E "s/^version = \".*\"/version = \"${ver}\"/" pyproject.toml
       - name: Update CHANGELOG.md
+        env:
+          RELEASE_NOTES: ${{ github.event.release.body }}
         run: |
           ver='${{ steps.get_version.outputs.version }}'
           rel_date="$(date -u +%Y-%m-%d)"
-          notes='${{ github.event.release.body }}'
+          # Strip carriage returns from release body (GitHub web UI uses CRLF)
+          notes="$(printf '%s' "$RELEASE_NOTES" | tr -d '\r')"
           header="## v${ver} - ${rel_date}"
           tmp=$(mktemp)
           {
             echo "$header";
             echo "";
-            if [ -n "$notes" ]; then echo "$notes"; else echo "Release v${ver}."; fi;
+            if [ -n "$notes" ]; then printf '%s\n' "$notes"; else echo "Release v${ver}."; fi;
             echo "";
             if [ -f CHANGELOG.md ]; then cat CHANGELOG.md; fi
           } > "$tmp"
