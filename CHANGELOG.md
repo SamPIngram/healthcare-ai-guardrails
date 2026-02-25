@@ -1,3 +1,7 @@
+## v0.0.5 - 2026-02-25
+
+**Full Changelog**: https://github.com/SamPIngram/healthcare-ai-guardrails/compare/v0.0.4-beta...v0.0.5
+
 ## v0.0.4-beta - 2026-02-25
 
 ## What's Changed

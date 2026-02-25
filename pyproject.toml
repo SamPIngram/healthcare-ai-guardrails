@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "healthcare-ai-guardrails"
-version = "0.0.4-beta"
+version = "0.0.5"
 description = "Guardrails for AI input/output validation in healthcare, with DICOM support"
 readme = "README.md"
 requires-python = ">=3.9"
