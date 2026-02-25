@@ -62,6 +62,9 @@ where = ["src"]
 include = ["healthcare_ai_guardrails*"]
 exclude = []
 
+[tool.setuptools.package-data]
+healthcare_ai_guardrails = ["py.typed"]
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-q --cov=healthcare_ai_guardrails --cov-report=term-missing --cov-report=xml"
