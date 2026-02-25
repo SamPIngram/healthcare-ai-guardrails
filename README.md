@@ -21,7 +21,7 @@ Lightweight validation guardrails for AI model inputs/outputs in healthcare work
 
 ## Install (users)
 
-Install from PyPI:
+Install from PyPI - https://pypi.org/project/healthcare-ai-guardrails:
 
 ```bash
 pip install healthcare-ai-guardrails
