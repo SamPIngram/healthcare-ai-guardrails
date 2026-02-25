@@ -4,6 +4,7 @@
 ![Python Versions](https://img.shields.io/pypi/pyversions/healthcare-ai-guardrails.svg)
 ![CI](https://github.com/SamPIngram/healthcare-ai-guardrails/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Typed](https://img.shields.io/badge/typing-py.typed-informational)
 
 Lightweight validation guardrails for AI model inputs/outputs in healthcare workflows, with first-class DICOM support.
 
@@ -38,23 +39,26 @@ If you’re validating DICOM, `pydicom` and `numpy` are already included as depe
 
 ## Install (contributors)
 
-Dev install:
+Dev install (includes test, lint tools, and pre-commit):
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e .[dev]
+pre-commit install
 ```
 
 With uv (fast Python package manager):
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-# create and use a virtualenv automatically
 uv venv
 source .venv/bin/activate
-uv pip install -e .
+uv pip install -e .[dev]
+pre-commit install
 ```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for full contributor guidelines.
 
 ## Quick start
 
@@ -292,7 +296,7 @@ uv run black .
 
 ## Contributing
 
-PRs welcome. Please add/update tests for new validators or behavior and update `examples/spec.example.yaml` when adding new spec types.
+PRs welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions, how to add validators, and the PR checklist.
 
 To create DICOMs in tests, use `create_test_dicom` from `healthcare_ai_guardrails.testing.dicom_factory`.
 

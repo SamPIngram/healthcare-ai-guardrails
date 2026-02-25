@@ -1,0 +1,46 @@
+name: Feature Request
+description: Suggest a new validator, API improvement, or other enhancement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! Please describe the feature and its use case.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What limitation or gap in the current package is this addressing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the feature you would like. Include example YAML spec or Python API usage if applicable.
+      placeholder: |
+        ```yaml
+        input:
+          - type: my_new_check
+            name: example
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative approaches you have thought about?
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Any other context, references, or DICOM tags involved.
+    validations:
+      required: false
