@@ -1,3 +1,11 @@
+## v0.4.0 - 2026-02-25
+
+## What's Changed
+* improve package adoption: fix deps, add typing, coverage, and contributor docs by @SamPIngram in https://github.com/SamPIngram/healthcare-ai-guardrails/pull/5
+
+
+**Full Changelog**: https://github.com/SamPIngram/healthcare-ai-guardrails/compare/v0.3.0-alpha...v0.4.0
+
 ## v0.0.5 - 2026-02-25
 
 **Full Changelog**: https://github.com/SamPIngram/healthcare-ai-guardrails/compare/v0.0.4-beta...v0.0.5
