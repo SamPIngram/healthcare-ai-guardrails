@@ -3,6 +3,7 @@
 These tests call the underlying tool functions directly (without the MCP
 protocol layer) to verify the QA pipeline logic exposed to AI agents.
 """
+
 from __future__ import annotations
 
 import textwrap
@@ -18,19 +19,16 @@ from healthcare_ai_guardrails.mcp_server import (
 # Shared fixtures / helpers
 # ---------------------------------------------------------------------------
 
-SIMPLE_RANGE_SPEC = textwrap.dedent(
-    """
+SIMPLE_RANGE_SPEC = textwrap.dedent("""
     input:
       - type: range
         name: probability_range
         path: ["probability"]
         min: 0.0
         max: 1.0
-    """
-)
+    """)
 
-REQUIRED_FIELDS_SPEC = textwrap.dedent(
-    """
+REQUIRED_FIELDS_SPEC = textwrap.dedent("""
     input:
       - type: required_fields
         name: required_check
@@ -41,11 +39,9 @@ REQUIRED_FIELDS_SPEC = textwrap.dedent(
         path: ["confidence"]
         min: 0.0
         max: 1.0
-    """
-)
+    """)
 
-HL7_SPEC = textwrap.dedent(
-    """
+HL7_SPEC = textwrap.dedent("""
     input:
       - type: hl7v2_field_exists
         name: patient_id_present
@@ -54,21 +50,18 @@ HL7_SPEC = textwrap.dedent(
         name: patient_sex_valid
         path: PID-8
         allowed: [M, F, O, U]
-    """
-)
+    """)
 
 HL7_MESSAGE = (
     "MSH|^~\\&|SendApp|SendFac|RecvApp|RecvFac|20240101120000||ADT^A01|MSG001|P|2.5\r"
     "PID|1||12345^^^MRN||Doe^John||19800101|M|||123 Main St^^City^ST^12345\r"
 )
 
-INVALID_SPEC = textwrap.dedent(
-    """
+INVALID_SPEC = textwrap.dedent("""
     input:
       - type: totally_unknown_validator_type
         name: bad_check
-    """
-)
+    """)
 
 
 # ---------------------------------------------------------------------------

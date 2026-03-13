@@ -7,6 +7,7 @@ Run with:
 
 Configure in Claude Desktop / MCP Inspector as a stdio server.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -32,7 +33,14 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "range",
         "description": "Checks that a numeric field at a given JSON path falls within [min, max].",
         "required_params": ["path"],
-        "optional_params": ["min", "max", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min",
+            "max",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "generic",
@@ -61,7 +69,14 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "dicom_patient_age",
         "description": "Checks patient age is within a year range. Parses age strings (e.g. '045Y', '008M') and birthdate fallback.",
         "required_params": [],
-        "optional_params": ["min_years", "max_years", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min_years",
+            "max_years",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "dicom",
@@ -89,14 +104,28 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "dicom_slice_thickness",
         "description": "Checks that SliceThickness (mm) is within [min_mm, max_mm].",
         "required_params": [],
-        "optional_params": ["min_mm", "max_mm", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min_mm",
+            "max_mm",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "dicom",
         "type": "dicom_pixel_spacing",
         "description": "Checks that both PixelSpacing values (mm) are within [min_mm, max_mm].",
         "required_params": [],
-        "optional_params": ["min_mm", "max_mm", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min_mm",
+            "max_mm",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "dicom",
@@ -131,7 +160,14 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "dicom_pixel_intensity_range",
         "description": "Checks that all pixel intensity values fall within [min, max].",
         "required_params": [],
-        "optional_params": ["min", "max", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min",
+            "max",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "dicom",
@@ -152,21 +188,42 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "dicom_kvp",
         "description": "Checks that X-ray tube voltage KVP is within [min_kvp, max_kvp].",
         "required_params": [],
-        "optional_params": ["min_kvp", "max_kvp", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min_kvp",
+            "max_kvp",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "dicom",
         "type": "dicom_tube_current",
         "description": "Checks that X-ray tube current (mA) is within [min_ma, max_ma].",
         "required_params": [],
-        "optional_params": ["min_ma", "max_ma", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min_ma",
+            "max_ma",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "dicom",
         "type": "dicom_exposure_time",
         "description": "Checks that X-ray exposure time (ms) is within [min_ms, max_ms].",
         "required_params": [],
-        "optional_params": ["min_ms", "max_ms", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min_ms",
+            "max_ms",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     # DICOM generic
     {
@@ -174,7 +231,15 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "dicom_generic_numeric_range",
         "description": "Generic numeric range check on any DICOM tag by name.",
         "required_params": ["tag"],
-        "optional_params": ["unit", "min_val", "max_val", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "unit",
+            "min_val",
+            "max_val",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "dicom_generic",
@@ -217,7 +282,14 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "hl7v2_numeric_range",
         "description": "Checks that a numeric field at an HL7 v2 path is within [min, max].",
         "required_params": ["path"],
-        "optional_params": ["min", "max", "inclusive", "name", "severity", "description"],
+        "optional_params": [
+            "min",
+            "max",
+            "inclusive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     # HL7 v3 (XML/CDA)
     {
@@ -232,7 +304,14 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "hl7v3_xpath_value_in_list",
         "description": "Checks that the value at an XPath expression is in the allowed list.",
         "required_params": ["xpath", "allowed"],
-        "optional_params": ["namespaces", "attr", "case_insensitive", "name", "severity", "description"],
+        "optional_params": [
+            "namespaces",
+            "attr",
+            "case_insensitive",
+            "name",
+            "severity",
+            "description",
+        ],
     },
     {
         "category": "hl7v3",
@@ -246,7 +325,16 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
         "type": "hl7v3_xpath_numeric_range",
         "description": "Checks that a numeric value at an XPath expression is within [min, max].",
         "required_params": ["xpath"],
-        "optional_params": ["min", "max", "inclusive", "namespaces", "attr", "name", "severity", "description"],
+        "optional_params": [
+            "min",
+            "max",
+            "inclusive",
+            "namespaces",
+            "attr",
+            "name",
+            "severity",
+            "description",
+        ],
     },
 ]
 
@@ -255,12 +343,15 @@ _VALIDATOR_CATALOG: List[Dict[str, Any]] = [
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _result_to_dict(r: Any) -> Dict[str, Any]:
     return {
         "name": r.name,
         "passed": r.passed,
         "message": r.message,
-        "severity": r.severity.value if hasattr(r.severity, "value") else str(r.severity),
+        "severity": (
+            r.severity.value if hasattr(r.severity, "value") else str(r.severity)
+        ),
         "context": r.context if r.context else {},
     }
 
@@ -278,6 +369,7 @@ def _load_spec_from_args(spec_path: Optional[str], spec_yaml: Optional[str]) -> 
 # ---------------------------------------------------------------------------
 # Tools
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool()
 def run_guardrails(
@@ -453,6 +545,7 @@ def describe_spec(
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:  # pragma: no cover
     mcp.run()
