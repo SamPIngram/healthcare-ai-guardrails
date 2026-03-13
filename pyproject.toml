@@ -29,6 +29,7 @@ dependencies = [
     "jsonschema>=4.20",
     "numpy>=1.22",
     "lxml>=6.0.2",
+    "mcp>=1.0",
 ]
 
 [project.optional-dependencies]
@@ -53,6 +54,7 @@ Changelog = "https://github.com/SamPIngram/healthcare-ai-guardrails/blob/main/CH
 
 [project.scripts]
 hc-guardrails = "healthcare_ai_guardrails.cli:main"
+hc-guardrails-mcp = "healthcare_ai_guardrails.mcp_server:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

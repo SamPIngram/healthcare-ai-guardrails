@@ -40,7 +40,7 @@ from .validators.hl7v3 import (
     HL7v3XPathRegexMatchCheck,
     HL7v3XPathNumericRangeCheck,
 )
-from .config import load_spec
+from .config import load_spec, load_spec_from_string
 
 __all__ = [
     "__version__",
@@ -71,4 +71,5 @@ __all__ = [
     "HL7v3XPathRegexMatchCheck",
     "HL7v3XPathNumericRangeCheck",
     "load_spec",
+    "load_spec_from_string",
 ]
