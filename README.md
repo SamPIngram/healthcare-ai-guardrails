@@ -352,26 +352,21 @@ With uv:
 uv run pytest -q
 ```
 
-Lint/type-check (optional suggestions):
+Lint/format/type-check (optional suggestions):
 
 ```bash
 pip install ruff mypy
 ruff check .
+ruff format .
 mypy src
-```
-
-Code style:
-
-```bash
-pip install black
-black .
 ```
 
 With uv:
 
 ```bash
-uv pip install black
-uv run black .
+uv pip install ruff mypy
+uv run ruff check .
+uv run ruff format .
 ```
 
 ## Notes
