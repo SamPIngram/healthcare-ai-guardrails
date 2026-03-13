@@ -41,6 +41,7 @@ from .validators.hl7v3 import (
     HL7v3XPathNumericRangeCheck,
 )
 from .config import load_spec, load_spec_from_string
+from .model_card import load_model_card, model_card_to_spec, model_card_to_yaml
 
 __all__ = [
     "__version__",
@@ -72,4 +73,7 @@ __all__ = [
     "HL7v3XPathNumericRangeCheck",
     "load_spec",
     "load_spec_from_string",
+    "load_model_card",
+    "model_card_to_spec",
+    "model_card_to_yaml",
 ]
