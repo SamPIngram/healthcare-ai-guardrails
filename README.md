@@ -338,7 +338,7 @@ output:
 
 ## Development
 
-Supported Python: 3.9–3.13 (tested in CI on Linux; library is pure Python and should work across platforms).
+Supported Python: 3.10–3.13 (tested in CI on Linux; library is pure Python and should work across platforms). Python 3.10 is the minimum due to the `mcp` dependency.
 
 Run tests locally:
 
