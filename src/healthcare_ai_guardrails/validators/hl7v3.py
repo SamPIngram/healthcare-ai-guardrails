@@ -198,9 +198,7 @@ class HL7v3XPathNumericRangeCheck:
     attr: str | None = None
     name: str = "hl7v3_xpath_numeric_range"
     severity: Severity = Severity.WARNING
-    description: str = (
-        "Ensure the XPath-selected value (attribute or text) is numeric and within range"
-    )
+    description: str = "Ensure the XPath-selected value (attribute or text) is numeric and within range"
 
     def validate(self, xml: Any) -> ValidationResult:
         root = _as_root(xml)
