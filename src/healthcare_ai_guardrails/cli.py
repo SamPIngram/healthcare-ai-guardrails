@@ -20,7 +20,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     spec = load_spec(args.spec)
-    data = load_data_from_path(Path(args.data))
+    try:
+        data = load_data_from_path(Path(args.data))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
     validators = (
         spec.input_validators if args.mode == "input" else spec.output_validators

@@ -5,10 +5,7 @@ protocol layer) to verify the QA pipeline logic exposed to AI agents.
 """
 from __future__ import annotations
 
-import json
 import textwrap
-
-import pytest
 
 from healthcare_ai_guardrails.mcp_server import (
     describe_spec,
@@ -150,6 +147,15 @@ class TestRunGuardrails:
             mode="input",
         )
         assert result["summary"]["all_passed"] is True
+
+    def test_invalid_mode_returns_error(self):
+        result = run_guardrails(
+            spec_yaml=SIMPLE_RANGE_SPEC,
+            data_content='{"probability": 0.5}',
+            mode="batch",
+        )
+        assert "error" in result
+        assert "mode" in result["error"].lower()
 
     def test_missing_data_returns_error(self):
         result = run_guardrails(spec_yaml=SIMPLE_RANGE_SPEC, mode="input")

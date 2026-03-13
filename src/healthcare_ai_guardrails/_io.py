@@ -11,7 +11,7 @@ def _read_dicom(path: Path) -> Any:
 
         return pydicom.dcmread(str(path))
     except Exception as exc:
-        raise SystemExit(f"Failed to read DICOM: {exc}")
+        raise ValueError(f"Failed to read DICOM: {exc}") from exc
 
 
 def _read_json(path: Path) -> Any:
@@ -33,7 +33,7 @@ def _read_xml(path: Path) -> Any:
         tree = ET.parse(str(path))
         return tree.getroot()
     except Exception as exc:
-        raise SystemExit(f"Failed to read XML: {exc}")
+        raise ValueError(f"Failed to read XML: {exc}") from exc
 
 
 def load_data_from_path(path: Path) -> Any:

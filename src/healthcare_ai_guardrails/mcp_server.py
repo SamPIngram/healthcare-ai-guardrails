@@ -304,6 +304,8 @@ def run_guardrails(
         Dict with "summary" (total/passed/failed/all_passed) and "results"
         (list of per-validator outcomes with name, passed, message, severity, context).
     """
+    if mode not in {"input", "output"}:
+        return {"error": f"Invalid mode {mode!r}. Must be 'input' or 'output'."}
     if not data_path and not data_content:
         return {"error": "One of data_path or data_content is required."}
 
@@ -417,7 +419,7 @@ def describe_spec(
 
     Returns:
         Dict with "input_validators" and "output_validators" lists, each
-        containing {name, description, severity} for every validator.
+        containing {name, description, severity, validator_class} for every validator.
     """
     try:
         spec = _load_spec_from_args(spec_path, spec_yaml)
