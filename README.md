@@ -17,7 +17,8 @@ Lightweight validation guardrails for AI model inputs/outputs in healthcare work
 - Output structure validation via JSON Schema
 - Simple Python API and CLI (`hc-guardrails`)
 - HL7 v2 support: basic field, value-in-list, regex, and numeric range checks via simple path syntax (e.g., PID-5.1)
- - HL7 v3 (XML) support: XPath-based validators for exists, value-in-list, regex, and numeric range with namespace support
+- HL7 v3 (XML) support: XPath-based validators for exists, value-in-list, regex, and numeric range with namespace support
+- **MCP server** (`hc-guardrails-mcp`): expose the full QA pipeline as tools for AI agents (Claude Desktop, Claude Code, etc.)
 
 ## Install (users)
 
@@ -143,6 +144,91 @@ hc-guardrails examples/tutorials/autocontouring_tutorial.yaml path/to/ct.dcm --m
 hc-guardrails examples/tutorials/autocontouring_tutorial.yaml path/to/rs.dcm --mode output
 ```
 
+## MCP server (AI agent integration)
+
+The package ships a [Model Context Protocol](https://modelcontextprotocol.io) server so AI agents (Claude Desktop, Claude Code, any MCP-compatible client) can run the guardrails QA pipeline automatically.
+
+### Setup
+
+The `hc-guardrails-mcp` command is installed alongside the package:
+
+```bash
+pip install healthcare-ai-guardrails
+```
+
+Configure it as a stdio MCP server in your client. For **Claude Desktop**, add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "healthcare-guardrails": {
+      "command": "hc-guardrails-mcp"
+    }
+  }
+}
+```
+
+For **Claude Code**:
+
+```bash
+claude mcp add healthcare-guardrails hc-guardrails-mcp
+```
+
+### Available tools
+
+| Tool | Description |
+|---|---|
+| `run_guardrails` | Run all validators from a spec against a data file or inline content. Returns per-validator pass/fail results and a summary. |
+| `list_validator_types` | Return the full catalog of available validator types, grouped by category, with their parameters. Useful for building new specs. |
+| `validate_spec` | Parse a YAML spec and report any configuration errors (unknown types, YAML syntax problems) before running it on real data. |
+| `describe_spec` | Load a spec and return a human-readable description of what each validator checks (name, description, severity). |
+
+### Example: run guardrails from a spec file
+
+```
+Tool: run_guardrails
+  spec_path: /data/ct_input_spec.yaml
+  data_path:  /data/patient001.dcm
+  mode:       input
+```
+
+Response:
+```json
+{
+  "summary": { "total": 5, "passed": 4, "failed": 1, "all_passed": false },
+  "results": [
+    { "name": "modality_check", "passed": true,  "message": "", "severity": "warning" },
+    { "name": "age_range",      "passed": true,  "message": "", "severity": "warning" },
+    { "name": "slice_thickness","passed": false, "message": "2.5 > max 2.0", "severity": "error" },
+    ...
+  ]
+}
+```
+
+### Example: run guardrails with an inline spec and JSON data
+
+```
+Tool: run_guardrails
+  spec_yaml: |
+    input:
+      - type: range
+        name: probability_range
+        path: ["probability"]
+        min: 0.0
+        max: 1.0
+  data_content: '{"probability": 0.7}'
+  mode: input
+```
+
+### Data formats supported
+
+| Format | Via `data_path` | Via `data_content` |
+|---|---|---|
+| DICOM (`.dcm`) | Yes | No (binary) |
+| JSON | Yes | Yes |
+| HL7 v2 | Yes | Yes (auto-detected by `MSH` prefix) |
+| HL7 v3 / XML | Yes | Yes (auto-detected by `<` prefix) |
+
 ## Python API
 
 ```python
@@ -252,7 +338,7 @@ output:
 
 ## Development
 
-Supported Python: 3.9–3.13 (tested in CI on Linux; library is pure Python and should work across platforms).
+Supported Python: 3.10–3.13 (tested in CI on Linux; library is pure Python and should work across platforms). Python 3.10 is the minimum due to the `mcp` dependency.
 
 Run tests locally:
 
@@ -266,26 +352,21 @@ With uv:
 uv run pytest -q
 ```
 
-Lint/type-check (optional suggestions):
+Lint/format/type-check (optional suggestions):
 
 ```bash
 pip install ruff mypy
 ruff check .
+ruff format .
 mypy src
-```
-
-Code style:
-
-```bash
-pip install black
-black .
 ```
 
 With uv:
 
 ```bash
-uv pip install black
-uv run black .
+uv pip install ruff mypy
+uv run ruff check .
+uv run ruff format .
 ```
 
 ## Notes

@@ -7,13 +7,12 @@ name = "healthcare-ai-guardrails"
 version = "0.4.0"
 description = "Guardrails for AI input/output validation in healthcare, with DICOM support"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Sam Ingram", email = "sampingram12@gmail.com" }]
 keywords = ["AI", "ML", "Healthcare", "DICOM", "Validation", "Guardrails"]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -29,6 +28,7 @@ dependencies = [
     "jsonschema>=4.20",
     "numpy>=1.22",
     "lxml>=6.0.2",
+    "mcp>=1.26.0",
 ]
 
 [project.optional-dependencies]
@@ -38,7 +38,6 @@ test = [
 ]
 lint = [
     "ruff",
-    "black",
     "mypy>=1.0",
 ]
 dev = [
@@ -53,6 +52,7 @@ Changelog = "https://github.com/SamPIngram/healthcare-ai-guardrails/blob/main/CH
 
 [project.scripts]
 hc-guardrails = "healthcare_ai_guardrails.cli:main"
+hc-guardrails-mcp = "healthcare_ai_guardrails.mcp_server:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

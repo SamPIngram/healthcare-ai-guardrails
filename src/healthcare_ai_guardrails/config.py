@@ -45,7 +45,6 @@ from .validators.hl7v3 import (
     HL7v3XPathNumericRangeCheck,
 )
 
-
 ValidatorObj = Any
 
 
@@ -337,12 +336,22 @@ def _build_validator(entry: Dict[str, Any]) -> ValidatorObj:
     raise ValueError(f"Unknown validator type: {t}")
 
 
-def load_spec(path: str | Path) -> Spec:
-    p = Path(path)
-    with p.open("r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f) or {}
+def _build_spec_from_dict(cfg: Dict[str, Any]) -> Spec:
     input_entries = cfg.get("input", [])
     output_entries = cfg.get("output", [])
     input_validators = [_build_validator(e) for e in input_entries]
     output_validators = [_build_validator(e) for e in output_entries]
     return Spec(input_validators=input_validators, output_validators=output_validators)
+
+
+def load_spec(path: str | Path) -> Spec:
+    p = Path(path)
+    with p.open("r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+    return _build_spec_from_dict(cfg)
+
+
+def load_spec_from_string(yaml_content: str) -> Spec:
+    """Load a guardrail spec from a YAML string rather than a file path."""
+    cfg = yaml.safe_load(yaml_content) or {}
+    return _build_spec_from_dict(cfg)
