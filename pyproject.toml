@@ -29,7 +29,7 @@ dependencies = [
     "jsonschema>=4.20",
     "numpy>=1.22",
     "lxml>=6.0.2",
-    "mcp>=1.0",
+    "mcp>=1.26.0",
 ]
 
 [project.optional-dependencies]
