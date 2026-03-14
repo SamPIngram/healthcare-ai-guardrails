@@ -30,7 +30,19 @@ from .config import load_spec_from_string, Spec
 # ---------------------------------------------------------------------------
 
 # DICOM standard patient position codes
-_DICOM_POSITIONS = {"HFS", "HFP", "FFS", "FFP", "HFDR", "HFDL", "FFDR", "FFDL", "SITTING", "LLD", "RLD"}
+_DICOM_POSITIONS = {
+    "HFS",
+    "HFP",
+    "FFS",
+    "FFP",
+    "HFDR",
+    "HFDL",
+    "FFDR",
+    "FFDL",
+    "SITTING",
+    "LLD",
+    "RLD",
+}
 
 # Text-description → DICOM code mappings (lowercase keys)
 _POSITION_TEXT_MAP: Dict[str, str] = {
@@ -188,7 +200,9 @@ def _parse_patient_positions(text: str) -> List[str]:
             found.append(code)
 
     # Extract standard uppercase codes
-    for code in re.findall(r"\b(HFS|HFP|FFS|FFP|HFDR|HFDL|FFDR|FFDL|SITTING|LLD|RLD)\b", t, re.IGNORECASE):
+    for code in re.findall(
+        r"\b(HFS|HFP|FFS|FFP|HFDR|HFDL|FFDR|FFDL|SITTING|LLD|RLD)\b", t, re.IGNORECASE
+    ):
         upper = code.upper()
         if upper not in found:
             found.append(upper)
@@ -284,7 +298,10 @@ def _parse_kvp(text: str) -> Tuple[Optional[float], Optional[float]]:
 # Spec/YAML generation
 # ---------------------------------------------------------------------------
 
-def _build_spec_entries(model_card: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+
+def _build_spec_entries(
+    model_card: Dict[str, Any],
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Build a list of validator dicts and an extraction summary from a model card.
 
     Returns (entries, extracted_summary).
@@ -303,13 +320,15 @@ def _build_spec_entries(model_card: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
     # --- Modality ---
     modalities = _parse_modalities(model_card)
     if modalities:
-        entries.append({
-            "type": "dicom_modality",
-            "name": "allowed_modality",
-            "description": f"Modality must match training data for model: {model_name}",
-            "allowed": modalities,
-            "severity": "error",
-        })
+        entries.append(
+            {
+                "type": "dicom_modality",
+                "name": "allowed_modality",
+                "description": f"Modality must match training data for model: {model_name}",
+                "allowed": modalities,
+                "severity": "error",
+            }
+        )
         extracted["modalities"] = modalities
     else:
         skipped.append("modalities")
@@ -337,13 +356,15 @@ def _build_spec_entries(model_card: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
     sex_text = str(training.get("sex", "") or "")
     sex_codes = _parse_sex(sex_text)
     if sex_codes:
-        entries.append({
-            "type": "dicom_patient_sex",
-            "name": "allowed_patient_sex",
-            "description": f"Patient sex within training distribution ({sex_text.strip()})",
-            "allowed": sex_codes,
-            "severity": "warning",
-        })
+        entries.append(
+            {
+                "type": "dicom_patient_sex",
+                "name": "allowed_patient_sex",
+                "description": f"Patient sex within training distribution ({sex_text.strip()})",
+                "allowed": sex_codes,
+                "severity": "warning",
+            }
+        )
         extracted["sex"] = sex_codes
     else:
         skipped.append("sex")
@@ -377,13 +398,15 @@ def _build_spec_entries(model_card: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
                 all_kvps.append(kvp_range)
 
         if all_positions:
-            entries.append({
-                "type": "dicom_patient_position",
-                "name": "allowed_patient_position",
-                "description": "Patient position must match training data",
-                "allowed": all_positions,
-                "severity": "warning",
-            })
+            entries.append(
+                {
+                    "type": "dicom_patient_position",
+                    "name": "allowed_patient_position",
+                    "description": "Patient position must match training data",
+                    "allowed": all_positions,
+                    "severity": "warning",
+                }
+            )
             extracted["patient_positions"] = all_positions
         else:
             skipped.append("patient_positioning")
@@ -403,7 +426,10 @@ def _build_spec_entries(model_card: Dict[str, Any]) -> Tuple[List[Dict[str, Any]
             if maxs:
                 st_entry["max_mm"] = max(maxs)
             entries.append(st_entry)
-            extracted["slice_thickness_mm"] = [st_entry.get("min_mm"), st_entry.get("max_mm")]
+            extracted["slice_thickness_mm"] = [
+                st_entry.get("min_mm"),
+                st_entry.get("max_mm"),
+            ]
         else:
             skipped.append("slice_thickness")
 
@@ -440,8 +466,7 @@ def model_card_to_yaml(model_card: Dict[str, Any]) -> str:
     entries, _ = _build_spec_entries(model_card)
 
     model_name: str = (
-        model_card.get("model_basic_information", {}).get("name", "")
-        or "unknown"
+        model_card.get("model_basic_information", {}).get("name", "") or "unknown"
     )
 
     header_lines = [
@@ -451,7 +476,9 @@ def model_card_to_yaml(model_card: Dict[str, Any]) -> str:
     ]
 
     spec_dict: Dict[str, Any] = {"input": entries, "output": []}
-    yaml_body = yaml.dump(spec_dict, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    yaml_body = yaml.dump(
+        spec_dict, default_flow_style=False, allow_unicode=True, sort_keys=False
+    )
 
     return "\n".join(header_lines) + yaml_body
 
@@ -479,7 +506,9 @@ def load_model_card(path: str | Path) -> Dict[str, Any]:
     with p.open("r", encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, dict):
-        raise ValueError(f"Expected a JSON object at top level, got {type(data).__name__}")
+        raise ValueError(
+            f"Expected a JSON object at top level, got {type(data).__name__}"
+        )
     return data
 
 
