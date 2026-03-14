@@ -17,6 +17,7 @@ from healthcare_ai_guardrails.model_card import (
     _parse_sex,
     _parse_slice_thickness,
     load_model_card,
+    model_card_to_extraction_summary,
     model_card_to_spec,
     model_card_to_yaml,
 )
@@ -319,3 +320,63 @@ class TestLoadModelCard:
         p.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
         with pytest.raises(ValueError, match="JSON object"):
             load_model_card(p)
+
+
+# ---------------------------------------------------------------------------
+# model_card_to_extraction_summary
+# ---------------------------------------------------------------------------
+
+
+class TestModelCardToExtractionSummary:
+    def test_extracted_fields_from_full_card(self):
+        summary = model_card_to_extraction_summary(_sample_model_card())
+        extracted = summary["extracted"]
+        assert extracted["modalities"] == ["CT"]
+        assert extracted["age_range"] == [18.0, 75.0]
+        assert set(extracted["sex"]) == {"M", "F"}
+        assert "HFS" in extracted["patient_positions"]
+        assert extracted["slice_thickness_mm"] == [1.0, 3.0]
+        assert extracted["kvp"] == [120.0, 120.0]
+
+    def test_skipped_fields_empty_card(self):
+        card: Dict[str, Any] = {
+            "technical_specifications": {"model_inputs": []},
+            "training_data": {},
+        }
+        summary = model_card_to_extraction_summary(card)
+        assert "modalities" in summary["skipped_fields"]
+        assert "age" in summary["skipped_fields"]
+
+    def test_return_structure(self):
+        summary = model_card_to_extraction_summary(_sample_model_card())
+        assert "extracted" in summary
+        assert "skipped_fields" in summary
+        assert isinstance(summary["extracted"], dict)
+        assert isinstance(summary["skipped_fields"], list)
+
+
+# ---------------------------------------------------------------------------
+# Integration: load → generate spec → verify validators
+# ---------------------------------------------------------------------------
+
+
+class TestIntegration:
+    def test_load_generate_spec_roundtrip(self, tmp_path: Path):
+        """Full pipeline: save JSON file, load it, generate Spec, verify validators."""
+        p = tmp_path / "card.json"
+        p.write_text(json.dumps(_sample_model_card()), encoding="utf-8")
+        card = load_model_card(p)
+        spec = model_card_to_spec(card)
+        # At minimum: modality + age + sex + position + slice thickness + kvp
+        assert len(spec.input_validators) >= 4
+        assert spec.output_validators == []
+
+    def test_load_generate_yaml_is_valid_yaml(self, tmp_path: Path):
+        p = tmp_path / "card.json"
+        p.write_text(json.dumps(_sample_model_card()), encoding="utf-8")
+        card = load_model_card(p)
+        raw_yaml = model_card_to_yaml(card)
+        parsed = yaml.safe_load(raw_yaml)
+        assert isinstance(parsed, dict)
+        assert "input" in parsed
+        assert len(parsed["input"]) >= 4

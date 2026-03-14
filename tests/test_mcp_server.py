@@ -8,8 +8,11 @@ from __future__ import annotations
 
 import textwrap
 
+import json
+
 from healthcare_ai_guardrails.mcp_server import (
     describe_spec,
+    generate_spec_from_model_card,
     list_validator_types,
     run_guardrails,
     validate_spec,
@@ -305,4 +308,58 @@ class TestDescribeSpec:
 
     def test_error_on_bad_spec(self):
         result = describe_spec(spec_yaml=INVALID_SPEC)
+        assert "error" in result
+
+
+# ---------------------------------------------------------------------------
+# generate_spec_from_model_card tests
+# ---------------------------------------------------------------------------
+
+_SAMPLE_CARD = {
+    "task": "Segmentation",
+    "model_basic_information": {"name": "TestModel"},
+    "technical_specifications": {
+        "model_inputs": ["CT"],
+        "model_outputs": ["RTSTRUCT"],
+    },
+    "training_data": {
+        "age": "18-75 years",
+        "sex": "Male and Female",
+        "inputs_outputs_technical_specifications": [
+            {
+                "entry": "CT",
+                "source": "model_inputs",
+                "patient_positioning": "HFS",
+                "scan_acquisition_parameters": "kVp: 120, slice thickness: 1-3mm",
+            }
+        ],
+    },
+}
+
+
+class TestGenerateSpecFromModelCard:
+    def test_valid_card_returns_yaml(self):
+        result = generate_spec_from_model_card(json.dumps(_SAMPLE_CARD))
+        assert "yaml" in result
+        assert "CT" in result["yaml"]
+        assert "dicom_modality" in result["yaml"]
+
+    def test_extracted_fields_present(self):
+        result = generate_spec_from_model_card(json.dumps(_SAMPLE_CARD))
+        assert "extracted" in result
+        assert result["extracted"]["modalities"] == ["CT"]
+        assert result["extracted"]["age_range"] == [18.0, 75.0]
+
+    def test_skipped_fields_present(self):
+        result = generate_spec_from_model_card(json.dumps(_SAMPLE_CARD))
+        assert "skipped_fields" in result
+        assert isinstance(result["skipped_fields"], list)
+
+    def test_invalid_json_returns_error(self):
+        result = generate_spec_from_model_card("not valid json {{")
+        assert "error" in result
+        assert "JSON" in result["error"]
+
+    def test_non_object_json_returns_error(self):
+        result = generate_spec_from_model_card(json.dumps([1, 2, 3]))
         assert "error" in result
