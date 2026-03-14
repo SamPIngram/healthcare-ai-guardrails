@@ -26,6 +26,7 @@ from healthcare_ai_guardrails.model_card import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _sample_model_card() -> Dict[str, Any]:
     return {
         "task": "Segmentation",
@@ -53,6 +54,7 @@ def _sample_model_card() -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # _parse_age_range
 # ---------------------------------------------------------------------------
+
 
 class TestParseAgeRange:
     @pytest.mark.parametrize("text", ["18-75 years", "18–75 years", "18 to 75 years"])
@@ -83,6 +85,7 @@ class TestParseAgeRange:
 # _parse_sex
 # ---------------------------------------------------------------------------
 
+
 class TestParseSex:
     def test_male_and_female_keywords(self):
         assert _parse_sex("Male and Female") == ["M", "F"]
@@ -110,20 +113,27 @@ class TestParseSex:
 # _parse_modalities
 # ---------------------------------------------------------------------------
 
+
 class TestParseModalities:
     def test_standard_code(self):
-        assert _parse_modalities({"technical_specifications": {"model_inputs": ["CT"]}}) == ["CT"]
+        assert _parse_modalities(
+            {"technical_specifications": {"model_inputs": ["CT"]}}
+        ) == ["CT"]
 
     @pytest.mark.parametrize("raw,expected", [("MRI", "MR"), ("PET", "PT")])
     def test_normalise_aliases(self, raw, expected):
-        assert _parse_modalities({"technical_specifications": {"model_inputs": [raw]}}) == [expected]
+        assert _parse_modalities(
+            {"technical_specifications": {"model_inputs": [raw]}}
+        ) == [expected]
 
     def test_multiple_with_normalisation(self):
         card = {"technical_specifications": {"model_inputs": ["MRI", "CT"]}}
         assert set(_parse_modalities(card)) == {"MR", "CT"}
 
     def test_empty_list_and_missing_key(self):
-        assert _parse_modalities({"technical_specifications": {"model_inputs": []}}) == []
+        assert (
+            _parse_modalities({"technical_specifications": {"model_inputs": []}}) == []
+        )
         assert _parse_modalities({}) == []
 
     def test_deduplication(self):
@@ -134,6 +144,7 @@ class TestParseModalities:
 # ---------------------------------------------------------------------------
 # _parse_patient_positions
 # ---------------------------------------------------------------------------
+
 
 class TestParsePatientPositions:
     def test_standard_code(self):
@@ -157,8 +168,11 @@ class TestParsePatientPositions:
 # _parse_slice_thickness
 # ---------------------------------------------------------------------------
 
+
 class TestParseSliceThickness:
-    @pytest.mark.parametrize("text", ["slice thickness: 1-3mm", "slice thickness 1 to 3 mm"])
+    @pytest.mark.parametrize(
+        "text", ["slice thickness: 1-3mm", "slice thickness 1 to 3 mm"]
+    )
     def test_range(self, text):
         assert _parse_slice_thickness(text) == (1.0, 3.0)
 
@@ -169,7 +183,9 @@ class TestParseSliceThickness:
         assert _parse_slice_thickness("3mm slices") == (3.0, 3.0)
 
     def test_in_mixed_text(self):
-        assert _parse_slice_thickness("kVp: 120, slice thickness: 1-3mm, FOV: 500mm") == (1.0, 3.0)
+        assert _parse_slice_thickness(
+            "kVp: 120, slice thickness: 1-3mm, FOV: 500mm"
+        ) == (1.0, 3.0)
 
     def test_reversed_normalised(self):
         assert _parse_slice_thickness("slice thickness: 3-1mm") == (1.0, 3.0)
@@ -182,6 +198,7 @@ class TestParseSliceThickness:
 # ---------------------------------------------------------------------------
 # _parse_kvp
 # ---------------------------------------------------------------------------
+
 
 class TestParseKvp:
     @pytest.mark.parametrize("text", ["120 kVp", "kVp: 120"])
@@ -210,6 +227,7 @@ class TestParseKvp:
 # model_card_to_yaml
 # ---------------------------------------------------------------------------
 
+
 class TestModelCardToYaml:
     def test_returns_valid_yaml_with_input_key(self):
         parsed = yaml.safe_load(model_card_to_yaml(_sample_model_card()))
@@ -235,10 +253,18 @@ class TestModelCardToYaml:
     def test_scan_param_validators_present(self):
         parsed = yaml.safe_load(model_card_to_yaml(_sample_model_card()))
         types = {v["type"] for v in parsed["input"]}
-        assert {"dicom_patient_sex", "dicom_patient_position", "dicom_slice_thickness", "dicom_kvp"}.issubset(types)
+        assert {
+            "dicom_patient_sex",
+            "dicom_patient_position",
+            "dicom_slice_thickness",
+            "dicom_kvp",
+        }.issubset(types)
 
     def test_empty_training_data_produces_minimal_spec(self):
-        card: Dict[str, Any] = {"technical_specifications": {"model_inputs": []}, "training_data": {}}
+        card: Dict[str, Any] = {
+            "technical_specifications": {"model_inputs": []},
+            "training_data": {},
+        }
         parsed = yaml.safe_load(model_card_to_yaml(card))
         assert parsed["input"] == []
 
@@ -246,6 +272,7 @@ class TestModelCardToYaml:
 # ---------------------------------------------------------------------------
 # model_card_to_spec
 # ---------------------------------------------------------------------------
+
 
 class TestModelCardToSpec:
     def test_returns_spec_with_validators(self):
@@ -257,19 +284,27 @@ class TestModelCardToSpec:
         assert spec.output_validators == []
 
     def test_validator_details(self):
-        from healthcare_ai_guardrails.validators.dicom import DICOMModalityCheck, DICOMPatientAgeCheck
+        from healthcare_ai_guardrails.validators.dicom import (
+            DICOMModalityCheck,
+            DICOMPatientAgeCheck,
+        )
 
         spec = model_card_to_spec(_sample_model_card())
-        modality_v = next(v for v in spec.input_validators if isinstance(v, DICOMModalityCheck))
+        modality_v = next(
+            v for v in spec.input_validators if isinstance(v, DICOMModalityCheck)
+        )
         assert "CT" in modality_v.allowed_modalities
 
-        age_v = next(v for v in spec.input_validators if isinstance(v, DICOMPatientAgeCheck))
+        age_v = next(
+            v for v in spec.input_validators if isinstance(v, DICOMPatientAgeCheck)
+        )
         assert age_v.min_years == 18.0 and age_v.max_years == 75.0
 
 
 # ---------------------------------------------------------------------------
 # load_model_card
 # ---------------------------------------------------------------------------
+
 
 class TestLoadModelCard:
     def test_loads_json_file(self, tmp_path: Path):
