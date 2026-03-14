@@ -144,6 +144,75 @@ hc-guardrails examples/tutorials/autocontouring_tutorial.yaml path/to/ct.dcm --m
 hc-guardrails examples/tutorials/autocontouring_tutorial.yaml path/to/rs.dcm --mode output
 ```
 
+## Model Card Integration (RT-AI-Model-Card)
+
+If your AI model was documented with the [RT-AI-Model-Card](https://github.com/MIRO-UCLouvain/RT-AI-Model-Card) Streamlit tool, you can convert the exported JSON directly into a guardrail spec — no manual YAML authoring required.
+
+### What gets extracted
+
+**Input validators** (applied to the data fed into the model):
+
+| Model Card field | Guardrail validator | Severity |
+|---|---|---|
+| `technical_specifications.model_inputs` | `dicom_modality` | error |
+| `training_data.age` | `dicom_patient_age` | warning |
+| `training_data.sex` | `dicom_patient_sex` | warning |
+| per-modality `patient_positioning` | `dicom_patient_position` | warning |
+| per-modality `scan_acquisition_parameters` → slice thickness | `dicom_slice_thickness` | warning |
+| per-modality `scan_acquisition_parameters` → kVp | `dicom_kvp` | warning |
+| per-modality `scanner_model` | `dicom_generic_value_in_list` on `ManufacturerModelName` | warning |
+
+**Output validators** (applied to what the model produces):
+
+| Model Card field | Guardrail validator | Severity |
+|---|---|---|
+| `technical_specifications.model_outputs` | `dicom_modality` | error |
+
+> **Note on scanner model values:** DICOM `ManufacturerModelName` tags often omit the manufacturer prefix (e.g. `"SOMATOM Definition AS+"` rather than `"Siemens SOMATOM Definition AS+"`). Review and adjust the generated `allowed_values` before use in production.
+
+Fields not listed above (e.g. `bmi`, `mAs`, `fov`, `image_resolution`) cannot be mapped to existing validators and are silently skipped. They are listed in a comment block at the top of the generated YAML and printed as warnings to stderr by the CLI, so you know what to add manually.
+
+### CLI usage
+
+```bash
+# Generate a reusable YAML spec from a model card and save it
+hc-guardrails --from-model-card model_card.json --generate-spec output.yaml
+
+# Print the generated spec to stdout (for inspection / piping)
+hc-guardrails --from-model-card model_card.json --generate-spec
+
+# Run guardrails directly without a separate spec file
+hc-guardrails --from-model-card model_card.json patient.dcm --mode input
+```
+
+### Python API
+
+```python
+from healthcare_ai_guardrails import load_model_card, model_card_to_yaml, model_card_to_spec
+
+card = load_model_card("model_card.json")
+
+# Inspect the generated YAML
+print(model_card_to_yaml(card))
+
+# Or get a ready-to-use Spec object and run it yourself
+spec = model_card_to_spec(card)
+```
+
+To debug what was (and wasn't) extracted:
+
+```python
+from healthcare_ai_guardrails import model_card_to_extraction_summary
+
+summary = model_card_to_extraction_summary(card)
+print(summary["extracted"])       # {"modalities": ["CT"], "age_range": [18, 75], ...}
+print(summary["skipped_fields"])  # e.g. ["age", "sex"] for fields present but unparseable
+```
+
+A sample model card JSON is provided at `examples/model_card.sample.json`.
+
+---
+
 ## MCP server (AI agent integration)
 
 The package ships a [Model Context Protocol](https://modelcontextprotocol.io) server so AI agents (Claude Desktop, Claude Code, any MCP-compatible client) can run the guardrails QA pipeline automatically.
@@ -182,6 +251,7 @@ claude mcp add healthcare-guardrails hc-guardrails-mcp
 | `list_validator_types` | Return the full catalog of available validator types, grouped by category, with their parameters. Useful for building new specs. |
 | `validate_spec` | Parse a YAML spec and report any configuration errors (unknown types, YAML syntax problems) before running it on real data. |
 | `describe_spec` | Load a spec and return a human-readable description of what each validator checks (name, description, severity). |
+| `generate_spec_from_model_card` | Convert an RT-AI-Model-Card JSON string into a guardrail YAML spec. Returns the YAML, a summary of extracted parameters, and a list of skipped fields. |
 
 ### Example: run guardrails from a spec file
 

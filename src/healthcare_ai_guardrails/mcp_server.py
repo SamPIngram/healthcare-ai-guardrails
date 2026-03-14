@@ -542,6 +542,66 @@ def describe_spec(
     }
 
 
+@mcp.tool()
+def generate_spec_from_model_card(
+    model_card_json: str,
+) -> Dict[str, Any]:
+    """Generate a guardrail YAML spec from an RT-AI-Model-Card JSON export.
+
+    Parses an exported JSON from the RT-AI-Model-Card tool
+    (https://github.com/MIRO-UCLouvain/RT-AI-Model-Card) and returns a
+    guardrail YAML spec enforcing the training distribution at inference time.
+
+    The following fields are extracted when present and parseable:
+    - Modality (from technical_specifications.model_inputs) → dicom_modality
+    - Age range (from training_data.age) → dicom_patient_age
+    - Sex (from training_data.sex) → dicom_patient_sex
+    - Patient positioning → dicom_patient_position
+    - Slice thickness → dicom_slice_thickness
+    - kVp → dicom_kvp
+
+    Fields that cannot be reliably parsed from free text are skipped and
+    listed in "skipped_fields".
+
+    Args:
+        model_card_json: The full JSON content of an RT-AI-Model-Card export
+            as a string.
+
+    Returns:
+        Dict with:
+        - "yaml": the generated guardrail YAML spec string
+        - "extracted": summary of successfully extracted parameters
+        - "skipped_fields": list of fields that could not be parsed
+        - "error": present only on failure
+    """
+    import json as _json
+
+    from .model_card import (
+        model_card_to_extraction_summary,
+        model_card_to_yaml,
+    )
+
+    try:
+        card = _json.loads(model_card_json)
+    except _json.JSONDecodeError as exc:
+        return {"error": f"Invalid JSON: {exc}"}
+
+    if not isinstance(card, dict):
+        return {"error": "model_card_json must be a JSON object"}
+
+    try:
+        yaml_str = model_card_to_yaml(card)
+        summary = model_card_to_extraction_summary(card)
+    except Exception as exc:
+        return {"error": f"Failed to generate spec: {exc}"}
+
+    return {
+        "yaml": yaml_str,
+        "extracted": summary["extracted"],
+        "skipped_fields": summary["skipped_fields"],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------

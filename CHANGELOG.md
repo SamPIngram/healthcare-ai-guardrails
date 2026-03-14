@@ -1,3 +1,11 @@
+## v0.5.0 - 2026-03-14
+
+### Added
+- **RT-AI-Model-Card integration**: `load_model_card`, `model_card_to_yaml`, `model_card_to_spec`, and `model_card_to_extraction_summary` parse an exported model card JSON and auto-generate a guardrail YAML spec covering modality, patient age, sex, patient position, slice thickness, and kVp.
+- `--from-model-card` and `--generate-spec` CLI flags for model-card-driven validation workflows (no manual YAML authoring required).
+- `generate_spec_from_model_card` MCP tool for AI-agent workflows.
+- Sample model card JSON at `examples/model_card.sample.json`.
+
 ## v0.4.0 - 2026-02-25
 
 ## What's Changed

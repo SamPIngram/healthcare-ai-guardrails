@@ -1,0 +1,59 @@
+{
+  "task": "Segmentation",
+  "card_metadata": {
+    "card_creation_date": "2026-01-15",
+    "version_number": "1.0.0",
+    "version_changes": "Initial release"
+  },
+  "model_basic_information": {
+    "name": "HeadNeck-AutoSeg-v1",
+    "creation_date": "2026-01-10",
+    "version_number": "1.0.0",
+    "model_scope_summary": "Automatic segmentation of head and neck organs at risk for radiotherapy treatment planning.",
+    "model_scope_anatomical_site": "Head and Neck",
+    "intended_users": "Radiation oncologists and medical physicists",
+    "type_of_learning_architecture": "3D U-Net",
+    "developed_by_name": "Example RT Lab",
+    "developed_by_institution": "Example University Hospital"
+  },
+  "technical_specifications": {
+    "model_pipeline_summary": "CT-based 3D segmentation pipeline with pre-processing normalisation and post-processing morphological refinement.",
+    "model_inputs": ["CT"],
+    "model_outputs": ["RTSTRUCT"],
+    "pre_processing": "HU windowing [-200, 400], isotropic resampling to 1mm",
+    "post_processing": "Connected component analysis, morphological closing"
+  },
+  "training_data": {
+    "total_size": "500 CT scans",
+    "number_of_patients": "500",
+    "source": "Multi-centre retrospective data from 3 European hospitals",
+    "acquisition_period": "2018–2023",
+    "inclusion_exclusion_criteria": "Adults with head and neck cancer, primary diagnosis, no prior RT",
+    "age": "25-75 years",
+    "sex": "Male and Female",
+    "bmi": "18-35 kg/m2",
+    "icd10_11": "C00-C14 (malignant neoplasms of lip, oral cavity and pharynx)",
+    "inputs_outputs_technical_specifications": [
+      {
+        "entry": "CT",
+        "source": "model_inputs",
+        "image_resolution": "512x512, 1mm isotropic after resampling",
+        "patient_positioning": "HFS",
+        "scanner_model": "Siemens SOMATOM Definition AS+, GE Discovery CT750 HD",
+        "scan_acquisition_parameters": "kVp: 120, mAs: 200-300, slice thickness: 1-3mm",
+        "scan_reconstruction_parameters": "Standard kernel, NA if Not Applicable",
+        "fov": "300-500mm"
+      }
+    ],
+    "validation_strategy": "5-fold cross-validation",
+    "validation_data_partition": "80/20 train/validation split per fold",
+    "epochs": "300",
+    "optimiser": "Adam",
+    "learning_rate": "1e-4",
+    "model_choice_criteria": "Best Dice score on validation set"
+  },
+  "other_considerations": {
+    "responsible_use_and_ethical_considerations": "Model is intended as a decision-support tool. Clinical review of all segmentations is mandatory before use in treatment planning.",
+    "risk_analysis": "Potential for missed or under-segmented structures in atypical anatomy."
+  }
+}
