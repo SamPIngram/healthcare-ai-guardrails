@@ -69,9 +69,24 @@ Examples:
     # Mode 1: --from-model-card + --generate-spec  →  write spec and exit
     # ------------------------------------------------------------------
     if args.from_model_card and args.generate_spec is not None:
-        from .model_card import load_model_card, model_card_to_yaml
+        from .model_card import (
+            load_model_card,
+            model_card_to_extraction_summary,
+            model_card_to_yaml,
+        )
 
         card = load_model_card(args.from_model_card)
+        summary = model_card_to_extraction_summary(card)
+        if summary["skipped_fields"]:
+            print(
+                f"Warning: the following fields could not be extracted and were skipped: "
+                f"{', '.join(summary['skipped_fields'])}",
+                file=sys.stderr,
+            )
+            print(
+                "Review the generated spec and add validators for these fields manually.",
+                file=sys.stderr,
+            )
         yaml_str = model_card_to_yaml(card)
 
         if args.generate_spec == "-":
@@ -99,9 +114,20 @@ Examples:
         else:
             data_path_str = args.data
 
-        from .model_card import load_model_card, model_card_to_spec
+        from .model_card import (
+            load_model_card,
+            model_card_to_extraction_summary,
+            model_card_to_spec,
+        )
 
         card = load_model_card(args.from_model_card)
+        summary = model_card_to_extraction_summary(card)
+        if summary["skipped_fields"]:
+            print(
+                f"Warning: the following fields could not be extracted and were skipped: "
+                f"{', '.join(summary['skipped_fields'])}",
+                file=sys.stderr,
+            )
         spec = model_card_to_spec(card)
 
         try:

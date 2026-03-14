@@ -161,14 +161,10 @@ def _parse_sex(text: str) -> List[str]:
     return result
 
 
-def _parse_modalities(model_card: Dict[str, Any]) -> List[str]:
-    """Extract and normalise modality codes from technical_specifications.model_inputs."""
-    tech = model_card.get("technical_specifications", {})
-    raw: Any = tech.get("model_inputs", [])
-
+def _normalise_modality_list(raw: Any) -> List[str]:
+    """Normalise a raw list of modality strings to DICOM codes."""
     if not isinstance(raw, list):
         return []
-
     normalised: List[str] = []
     for item in raw:
         if not isinstance(item, str):
@@ -177,8 +173,19 @@ def _parse_modalities(model_card: Dict[str, Any]) -> List[str]:
         code = _MODALITY_ALIASES.get(code, code)
         if code and code not in normalised:
             normalised.append(code)
-
     return normalised
+
+
+def _parse_modalities(model_card: Dict[str, Any]) -> List[str]:
+    """Extract and normalise modality codes from technical_specifications.model_inputs."""
+    tech = model_card.get("technical_specifications", {})
+    return _normalise_modality_list(tech.get("model_inputs", []))
+
+
+def _parse_output_modalities(model_card: Dict[str, Any]) -> List[str]:
+    """Extract and normalise modality codes from technical_specifications.model_outputs."""
+    tech = model_card.get("technical_specifications", {})
+    return _normalise_modality_list(tech.get("model_outputs", []))
 
 
 def _parse_patient_positions(text: str) -> List[str]:
@@ -294,6 +301,27 @@ def _parse_kvp(text: str) -> Tuple[Optional[float], Optional[float]]:
     return None, None
 
 
+def _parse_scanner_models(text: str) -> List[str]:
+    """Extract individual scanner model names from a comma-separated free-text string.
+
+    The RT-AI-Model-Card ``scanner_model`` field typically contains one or more
+    make/model strings separated by commas, e.g.::
+
+        "Siemens SOMATOM Definition AS+, GE Discovery CT750 HD"
+
+    Each value is returned trimmed.  The caller should use these as the
+    ``allowed_values`` for a ``dicom_generic_value_in_list`` validator on the
+    ``ManufacturerModelName`` DICOM tag — note that DICOM tag values may not
+    include the manufacturer prefix, so review the generated validator before
+    use.
+
+    Returns an empty list if the text is blank.
+    """
+    if not text or not text.strip():
+        return []
+    return [s.strip() for s in text.split(",") if s.strip()]
+
+
 # ---------------------------------------------------------------------------
 # Spec/YAML generation
 # ---------------------------------------------------------------------------
@@ -301,12 +329,13 @@ def _parse_kvp(text: str) -> Tuple[Optional[float], Optional[float]]:
 
 def _build_spec_entries(
     model_card: Dict[str, Any],
-) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    """Build a list of validator dicts and an extraction summary from a model card.
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any]]:
+    """Build input and output validator dicts plus an extraction summary.
 
-    Returns (entries, extracted_summary).
+    Returns ``(input_entries, output_entries, extracted_summary)``.
     """
-    entries: List[Dict[str, Any]] = []
+    input_entries: List[Dict[str, Any]] = []
+    output_entries: List[Dict[str, Any]] = []
     extracted: Dict[str, Any] = {}
     skipped: List[str] = []
 
@@ -317,10 +346,10 @@ def _build_spec_entries(
         or "unknown"
     )
 
-    # --- Modality ---
+    # --- Input modality ---
     modalities = _parse_modalities(model_card)
     if modalities:
-        entries.append(
+        input_entries.append(
             {
                 "type": "dicom_modality",
                 "name": "allowed_modality",
@@ -347,7 +376,7 @@ def _build_spec_entries(
             entry["min_years"] = min_age
         if max_age is not None:
             entry["max_years"] = max_age
-        entries.append(entry)
+        input_entries.append(entry)
         extracted["age_range"] = [min_age, max_age]
     else:
         skipped.append("age")
@@ -356,7 +385,7 @@ def _build_spec_entries(
     sex_text = str(training.get("sex", "") or "")
     sex_codes = _parse_sex(sex_text)
     if sex_codes:
-        entries.append(
+        input_entries.append(
             {
                 "type": "dicom_patient_sex",
                 "name": "allowed_patient_sex",
@@ -369,12 +398,13 @@ def _build_spec_entries(
     else:
         skipped.append("sex")
 
-    # --- Per-modality scan parameters ---
+    # --- Per-modality scan parameters (inputs only) ---
     io_specs: Any = training.get("inputs_outputs_technical_specifications", [])
     if isinstance(io_specs, list):
         all_positions: List[str] = []
         all_slice_thicknesses: List[Tuple[Optional[float], Optional[float]]] = []
         all_kvps: List[Tuple[Optional[float], Optional[float]]] = []
+        all_scanner_models: List[str] = []
 
         for spec_item in io_specs:
             if not isinstance(spec_item, dict):
@@ -397,8 +427,13 @@ def _build_spec_entries(
             if kvp_range != (None, None):
                 all_kvps.append(kvp_range)
 
+            scanner_text = str(spec_item.get("scanner_model", "") or "")
+            for model in _parse_scanner_models(scanner_text):
+                if model not in all_scanner_models:
+                    all_scanner_models.append(model)
+
         if all_positions:
-            entries.append(
+            input_entries.append(
                 {
                     "type": "dicom_patient_position",
                     "name": "allowed_patient_position",
@@ -425,7 +460,7 @@ def _build_spec_entries(
                 st_entry["min_mm"] = min(mins)
             if maxs:
                 st_entry["max_mm"] = max(maxs)
-            entries.append(st_entry)
+            input_entries.append(st_entry)
             extracted["slice_thickness_mm"] = [
                 st_entry.get("min_mm"),
                 st_entry.get("max_mm"),
@@ -446,24 +481,68 @@ def _build_spec_entries(
                 kvp_entry["min_kvp"] = min(mins_kvp)
             if maxs_kvp:
                 kvp_entry["max_kvp"] = max(maxs_kvp)
-            entries.append(kvp_entry)
+            input_entries.append(kvp_entry)
             extracted["kvp"] = [kvp_entry.get("min_kvp"), kvp_entry.get("max_kvp")]
         else:
             skipped.append("kvp")
 
+        if all_scanner_models:
+            input_entries.append(
+                {
+                    "type": "dicom_generic_value_in_list",
+                    "name": "allowed_scanner_model",
+                    "description": (
+                        "Scanner model must match training data. "
+                        "Review ManufacturerModelName values — DICOM tags may omit "
+                        "the manufacturer prefix (e.g. 'SOMATOM Definition AS+' not "
+                        "'Siemens SOMATOM Definition AS+')."
+                    ),
+                    "tag": "ManufacturerModelName",
+                    "allowed_values": all_scanner_models,
+                    "severity": "warning",
+                }
+            )
+            extracted["scanner_models"] = all_scanner_models
+        else:
+            skipped.append("scanner_model")
+
+    # --- Output modality ---
+    # Only emit if model_outputs is explicitly present in the card.
+    tech = model_card.get("technical_specifications", {})
+    if "model_outputs" in tech:
+        output_modalities = _parse_output_modalities(model_card)
+        if output_modalities:
+            output_entries.append(
+                {
+                    "type": "dicom_modality",
+                    "name": "allowed_output_modality",
+                    "description": (
+                        f"Output modality must match model specification for: {model_name}"
+                    ),
+                    "allowed": output_modalities,
+                    "severity": "error",
+                }
+            )
+            extracted["output_modalities"] = output_modalities
+        else:
+            skipped.append("output_modalities")
+
     extracted["skipped_fields"] = skipped
-    return entries, extracted
+    return input_entries, output_entries, extracted
 
 
 def model_card_to_yaml(model_card: Dict[str, Any]) -> str:
     """Convert an RT-AI-Model-Card dict into a guardrail YAML spec string.
 
-    Fields that cannot be reliably parsed from free text are silently skipped.
+    Fields that cannot be reliably parsed from free text are silently skipped;
+    they are listed in a comment block at the top of the generated YAML so the
+    user knows what to add manually.
 
     :param model_card: Parsed RT-AI-Model-Card JSON as a dict.
     :return: YAML string suitable for use with :func:`load_spec_from_string`.
     """
-    entries, _ = _build_spec_entries(model_card)
+    input_entries, output_entries, summary = _build_spec_entries(model_card)
+    skipped = summary.get("skipped_fields", [])
 
     model_name: str = (
         model_card.get("model_basic_information", {}).get("name", "") or "unknown"
@@ -472,10 +551,19 @@ def model_card_to_yaml(model_card: Dict[str, Any]) -> str:
     header_lines = [
         f"# Auto-generated from RT-AI-Model-Card: {model_name}",
         "# Edit as needed before use in production.",
-        "",
     ]
 
-    spec_dict: Dict[str, Any] = {"input": entries, "output": []}
+    if skipped:
+        header_lines.append(
+            f"# Fields not extracted (unparseable or absent): {', '.join(skipped)}"
+        )
+        header_lines.append(
+            "# Review these fields and add validators manually if needed."
+        )
+
+    header_lines.append("")
+
+    spec_dict: Dict[str, Any] = {"input": input_entries, "output": output_entries}
     yaml_body = yaml.dump(
         spec_dict, default_flow_style=False, allow_unicode=True, sort_keys=False
     )
@@ -520,6 +608,6 @@ def model_card_to_extraction_summary(model_card: Dict[str, Any]) -> Dict[str, An
     :param model_card: Parsed RT-AI-Model-Card JSON as a dict.
     :return: Dict with keys ``extracted`` and ``skipped_fields``.
     """
-    _, extracted = _build_spec_entries(model_card)
+    _, __, extracted = _build_spec_entries(model_card)
     skipped = extracted.pop("skipped_fields", [])
     return {"extracted": extracted, "skipped_fields": skipped}

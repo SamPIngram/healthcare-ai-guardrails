@@ -331,6 +331,7 @@ _SAMPLE_CARD = {
                 "source": "model_inputs",
                 "patient_positioning": "HFS",
                 "scan_acquisition_parameters": "kVp: 120, slice thickness: 1-3mm",
+                "scanner_model": "Siemens SOMATOM Definition AS+",
             }
         ],
     },
@@ -349,6 +350,16 @@ class TestGenerateSpecFromModelCard:
         assert "extracted" in result
         assert result["extracted"]["modalities"] == ["CT"]
         assert result["extracted"]["age_range"] == [18.0, 75.0]
+        assert result["extracted"]["output_modalities"] == ["RTSTRUCT"]
+        assert "Siemens SOMATOM Definition AS+" in result["extracted"]["scanner_models"]
+
+    def test_output_modality_in_yaml(self):
+        result = generate_spec_from_model_card(json.dumps(_SAMPLE_CARD))
+        import yaml as _yaml
+
+        parsed = _yaml.safe_load(result["yaml"])
+        assert len(parsed["output"]) == 1
+        assert "RTSTRUCT" in parsed["output"][0]["allowed"]
 
     def test_skipped_fields_present(self):
         result = generate_spec_from_model_card(json.dumps(_SAMPLE_CARD))

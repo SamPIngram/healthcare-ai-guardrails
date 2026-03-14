@@ -150,6 +150,8 @@ If your AI model was documented with the [RT-AI-Model-Card](https://github.com/M
 
 ### What gets extracted
 
+**Input validators** (applied to the data fed into the model):
+
 | Model Card field | Guardrail validator | Severity |
 |---|---|---|
 | `technical_specifications.model_inputs` | `dicom_modality` | error |
@@ -158,8 +160,17 @@ If your AI model was documented with the [RT-AI-Model-Card](https://github.com/M
 | per-modality `patient_positioning` | `dicom_patient_position` | warning |
 | per-modality `scan_acquisition_parameters` → slice thickness | `dicom_slice_thickness` | warning |
 | per-modality `scan_acquisition_parameters` → kVp | `dicom_kvp` | warning |
+| per-modality `scanner_model` | `dicom_generic_value_in_list` on `ManufacturerModelName` | warning |
 
-Fields not in the table (e.g. `bmi`, `mAs`, `fov`, `image_resolution`) are silently skipped — no validator is emitted for them.
+**Output validators** (applied to what the model produces):
+
+| Model Card field | Guardrail validator | Severity |
+|---|---|---|
+| `technical_specifications.model_outputs` | `dicom_modality` | error |
+
+> **Note on scanner model values:** DICOM `ManufacturerModelName` tags often omit the manufacturer prefix (e.g. `"SOMATOM Definition AS+"` rather than `"Siemens SOMATOM Definition AS+"`). Review and adjust the generated `allowed_values` before use in production.
+
+Fields not listed above (e.g. `bmi`, `mAs`, `fov`, `image_resolution`) cannot be mapped to existing validators and are silently skipped. They are listed in a comment block at the top of the generated YAML and printed as warnings to stderr by the CLI, so you know what to add manually.
 
 ### CLI usage
 

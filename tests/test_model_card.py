@@ -13,7 +13,9 @@ from healthcare_ai_guardrails.model_card import (
     _parse_age_range,
     _parse_kvp,
     _parse_modalities,
+    _parse_output_modalities,
     _parse_patient_positions,
+    _parse_scanner_models,
     _parse_sex,
     _parse_slice_thickness,
     load_model_card,
@@ -45,6 +47,7 @@ def _sample_model_card() -> Dict[str, Any]:
                     "source": "model_inputs",
                     "patient_positioning": "HFS",
                     "scan_acquisition_parameters": "kVp: 120, slice thickness: 1-3mm",
+                    "scanner_model": "Siemens SOMATOM Definition AS+, GE Discovery CT750 HD",
                     "image_resolution": "512x512",
                 }
             ],
@@ -140,6 +143,50 @@ class TestParseModalities:
     def test_deduplication(self):
         card = {"technical_specifications": {"model_inputs": ["CT", "CT"]}}
         assert _parse_modalities(card) == ["CT"]
+
+
+# ---------------------------------------------------------------------------
+# _parse_output_modalities
+# ---------------------------------------------------------------------------
+
+
+class TestParseOutputModalities:
+    def test_standard_code(self):
+        card = {"technical_specifications": {"model_outputs": ["RTSTRUCT"]}}
+        assert _parse_output_modalities(card) == ["RTSTRUCT"]
+
+    def test_normalise_aliases(self):
+        card = {"technical_specifications": {"model_outputs": ["MRI"]}}
+        assert _parse_output_modalities(card) == ["MR"]
+
+    def test_empty_list(self):
+        card = {"technical_specifications": {"model_outputs": []}}
+        assert _parse_output_modalities(card) == []
+
+    def test_missing_key(self):
+        assert _parse_output_modalities({}) == []
+
+
+# ---------------------------------------------------------------------------
+# _parse_scanner_models
+# ---------------------------------------------------------------------------
+
+
+class TestParseScannerModels:
+    def test_single_model(self):
+        assert _parse_scanner_models("Siemens SOMATOM Definition AS+") == [
+            "Siemens SOMATOM Definition AS+"
+        ]
+
+    def test_comma_separated(self):
+        result = _parse_scanner_models(
+            "Siemens SOMATOM Definition AS+, GE Discovery CT750 HD"
+        )
+        assert result == ["Siemens SOMATOM Definition AS+", "GE Discovery CT750 HD"]
+
+    def test_empty(self):
+        assert _parse_scanner_models("") == []
+        assert _parse_scanner_models("   ") == []
 
 
 # ---------------------------------------------------------------------------
@@ -261,6 +308,32 @@ class TestModelCardToYaml:
             "dicom_kvp",
         }.issubset(types)
 
+    def test_output_modality_validator_in_output_section(self):
+        parsed = yaml.safe_load(model_card_to_yaml(_sample_model_card()))
+        assert "output" in parsed
+        assert len(parsed["output"]) == 1
+        assert parsed["output"][0]["type"] == "dicom_modality"
+        assert "RTSTRUCT" in parsed["output"][0]["allowed"]
+
+    def test_scanner_model_validator_present(self):
+        parsed = yaml.safe_load(model_card_to_yaml(_sample_model_card()))
+        scanner_v = next(
+            (v for v in parsed["input"] if v["type"] == "dicom_generic_value_in_list"),
+            None,
+        )
+        assert scanner_v is not None
+        assert scanner_v["tag"] == "ManufacturerModelName"
+        assert "Siemens SOMATOM Definition AS+" in scanner_v["allowed_values"]
+
+    def test_skipped_fields_appear_in_comment(self):
+        card: Dict[str, Any] = {
+            "technical_specifications": {"model_inputs": []},
+            "training_data": {},
+        }
+        raw = model_card_to_yaml(card)
+        assert "Fields not extracted" in raw
+        assert "modalities" in raw
+
     def test_empty_training_data_produces_minimal_spec(self):
         card: Dict[str, Any] = {
             "technical_specifications": {"model_inputs": []},
@@ -282,7 +355,8 @@ class TestModelCardToSpec:
         spec = model_card_to_spec(_sample_model_card())
         assert isinstance(spec, Spec)
         assert len(spec.input_validators) > 0
-        assert spec.output_validators == []
+        # RTSTRUCT in model_outputs → output modality validator
+        assert len(spec.output_validators) == 1
 
     def test_validator_details(self):
         from healthcare_ai_guardrails.validators.dicom import (
@@ -337,6 +411,8 @@ class TestModelCardToExtractionSummary:
         assert "HFS" in extracted["patient_positions"]
         assert extracted["slice_thickness_mm"] == [1.0, 3.0]
         assert extracted["kvp"] == [120.0, 120.0]
+        assert extracted["output_modalities"] == ["RTSTRUCT"]
+        assert "Siemens SOMATOM Definition AS+" in extracted["scanner_models"]
 
     def test_skipped_fields_empty_card(self):
         card: Dict[str, Any] = {
@@ -367,9 +443,10 @@ class TestIntegration:
         p.write_text(json.dumps(_sample_model_card()), encoding="utf-8")
         card = load_model_card(p)
         spec = model_card_to_spec(card)
-        # At minimum: modality + age + sex + position + slice thickness + kvp
+        # modality + age + sex + position + slice thickness + kvp + scanner model
         assert len(spec.input_validators) >= 4
-        assert spec.output_validators == []
+        # RTSTRUCT in model_outputs → output modality validator
+        assert len(spec.output_validators) == 1
 
     def test_load_generate_yaml_is_valid_yaml(self, tmp_path: Path):
         p = tmp_path / "card.json"
@@ -379,4 +456,6 @@ class TestIntegration:
         parsed = yaml.safe_load(raw_yaml)
         assert isinstance(parsed, dict)
         assert "input" in parsed
+        assert "output" in parsed
         assert len(parsed["input"]) >= 4
+        assert len(parsed["output"]) == 1
