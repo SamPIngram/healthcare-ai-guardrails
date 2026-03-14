@@ -94,10 +94,17 @@ class TestParseSex:
     def test_male_and_female_keywords(self):
         assert _parse_sex("Male and Female") == ["M", "F"]
 
-    @pytest.mark.parametrize("text", ["both sexes", "All genders"])
+    @pytest.mark.parametrize("text", ["both sexes", "All genders", "all sexes"])
     def test_both_or_all(self, text):
         result = _parse_sex(text)
         assert "M" in result and "F" in result
+
+    @pytest.mark.parametrize(
+        "text,expected", [("all male", ["M"]), ("all female", ["F"])]
+    )
+    def test_all_plus_single_sex_not_both(self, text, expected):
+        """'all male'/'all female' must not be treated as both sexes."""
+        assert _parse_sex(text) == expected
 
     def test_shorthand(self):
         assert _parse_sex("M/F") == ["M", "F"]
@@ -143,6 +150,17 @@ class TestParseModalities:
     def test_deduplication(self):
         card = {"technical_specifications": {"model_inputs": ["CT", "CT"]}}
         assert _parse_modalities(card) == ["CT"]
+
+    def test_compound_modality_split(self):
+        """PET/CT must produce both PT and CT, not drop CT."""
+        card = {"technical_specifications": {"model_inputs": ["PET/CT"]}}
+        result = _parse_modalities(card)
+        assert set(result) == {"PT", "CT"}
+
+    def test_xray_ct_split(self):
+        card = {"technical_specifications": {"model_inputs": ["XRAY/CT"]}}
+        result = _parse_modalities(card)
+        assert set(result) == {"DX", "CT"}
 
 
 # ---------------------------------------------------------------------------
@@ -341,6 +359,21 @@ class TestModelCardToYaml:
         }
         parsed = yaml.safe_load(model_card_to_yaml(card))
         assert parsed["input"] == []
+
+    def test_newline_in_model_name_does_not_break_yaml(self):
+        """A newline in the model name must not create a multi-line YAML comment."""
+        card: Dict[str, Any] = {
+            "model_basic_information": {"name": "Evil\nModel"},
+            "technical_specifications": {"model_inputs": []},
+            "training_data": {},
+        }
+        raw = model_card_to_yaml(card)
+        # Every line that starts with "#" is still a comment
+        for line in raw.splitlines():
+            if line.startswith("#"):
+                assert "\n" not in line
+        # Must still parse as valid YAML
+        assert yaml.safe_load(raw) is not None
 
 
 # ---------------------------------------------------------------------------

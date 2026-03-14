@@ -29,7 +29,7 @@ from .config import load_spec_from_string, Spec
 # Field parsers
 # ---------------------------------------------------------------------------
 
-# DICOM standard patient position codes
+# DICOM standard patient position codes (used both for the text-map and regex)
 _DICOM_POSITIONS = {
     "HFS",
     "HFP",
@@ -44,6 +44,13 @@ _DICOM_POSITIONS = {
     "RLD",
 }
 
+# Pre-compiled regex built from _DICOM_POSITIONS so the two stay in sync.
+# Longer codes are tried first to avoid partial matches (e.g. "HFS" before "HF").
+_POSITION_PATTERN = re.compile(
+    r"\b(" + "|".join(sorted(_DICOM_POSITIONS, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+
 # Text-description → DICOM code mappings (lowercase keys)
 _POSITION_TEXT_MAP: Dict[str, str] = {
     "head first supine": "HFS",
@@ -56,14 +63,14 @@ _POSITION_TEXT_MAP: Dict[str, str] = {
     "feet first decubitus left": "FFDL",
 }
 
-# Modality normalisation aliases (uppercase keys)
+# Modality normalisation aliases (uppercase keys).
+# Compound strings like "PET/CT" are split on "/" before lookup so both
+# components are preserved — do NOT add compound keys here.
 _MODALITY_ALIASES: Dict[str, str] = {
     "MRI": "MR",
     "PET": "PT",
     "XRAY": "DX",
     "X-RAY": "DX",
-    "XRAY/CT": "DX",
-    "PET/CT": "PT",
     "NUCLEAR MEDICINE": "NM",
 }
 
@@ -139,7 +146,9 @@ def _parse_sex(text: str) -> List[str]:
     # Keyword-based
     has_male = bool(re.search(r"\bmale\b|\bmen\b|\bman\b", t))
     has_female = bool(re.search(r"\bfemale\b|\bwomen\b|\bwoman\b", t))
-    has_both = bool(re.search(r"\bboth\b|\ball\b|\bmix", t))
+    # "both" alone is unambiguous; "all" is only safe when followed by
+    # "genders" or "sexes" (e.g. "all male" must NOT match).
+    has_both = bool(re.search(r"\bboth\b|\bmix|\ball\s+(?:genders?|sexes?)", t))
     has_other = bool(re.search(r"\bother\b", t))
 
     if has_both or (has_male and has_female):
@@ -162,17 +171,24 @@ def _parse_sex(text: str) -> List[str]:
 
 
 def _normalise_modality_list(raw: Any) -> List[str]:
-    """Normalise a raw list of modality strings to DICOM codes."""
+    """Normalise a raw list of modality strings to DICOM codes.
+
+    Compound strings like ``"PET/CT"`` are split on ``"/"`` before alias
+    lookup so that all modalities are preserved in the output
+    (``["PT", "CT"]`` rather than losing one of them).
+    """
     if not isinstance(raw, list):
         return []
     normalised: List[str] = []
     for item in raw:
         if not isinstance(item, str):
             continue
-        code = item.strip().upper()
-        code = _MODALITY_ALIASES.get(code, code)
-        if code and code not in normalised:
-            normalised.append(code)
+        # Split compound modalities (e.g. "PET/CT" → ["PET", "CT"])
+        for part in item.split("/"):
+            code = part.strip().upper()
+            code = _MODALITY_ALIASES.get(code, code)
+            if code and code not in normalised:
+                normalised.append(code)
     return normalised
 
 
@@ -206,10 +222,8 @@ def _parse_patient_positions(text: str) -> List[str]:
         if desc in t_lower and code not in found:
             found.append(code)
 
-    # Extract standard uppercase codes
-    for code in re.findall(
-        r"\b(HFS|HFP|FFS|FFP|HFDR|HFDL|FFDR|FFDL|SITTING|LLD|RLD)\b", t, re.IGNORECASE
-    ):
+    # Extract standard uppercase codes using the pre-compiled pattern
+    for code in _POSITION_PATTERN.findall(t):
         upper = code.upper()
         if upper not in found:
             found.append(upper)
@@ -547,6 +561,9 @@ def model_card_to_yaml(model_card: Dict[str, Any]) -> str:
     model_name: str = (
         model_card.get("model_basic_information", {}).get("name", "") or "unknown"
     )
+    # Sanitize: a newline in the name would break the YAML comment and could
+    # inject arbitrary content into the generated spec.
+    model_name = model_name.replace("\r", " ").replace("\n", " ")
 
     header_lines = [
         f"# Auto-generated from RT-AI-Model-Card: {model_name}",

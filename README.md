@@ -206,7 +206,7 @@ from healthcare_ai_guardrails import model_card_to_extraction_summary
 
 summary = model_card_to_extraction_summary(card)
 print(summary["extracted"])       # {"modalities": ["CT"], "age_range": [18, 75], ...}
-print(summary["skipped_fields"])  # ["bmi", "fov", ...]
+print(summary["skipped_fields"])  # e.g. ["age", "sex"] for fields present but unparseable
 ```
 
 A sample model card JSON is provided at `examples/model_card.sample.json`.
